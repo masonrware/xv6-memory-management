@@ -1,0 +1,50 @@
+starting build
+
+**********************************************************************
+
+Test build
+build xv6 using make
+
+**********************************************************************
+Trying to build project using make
+make xv6.img fs.img
+gcc -fno-pic -static -fno-builtin -fno-strict-aliasing -O0 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie   -c -o proc.o proc.c
+proc.c: In function ‘scheduler’:
+proc.c:560:13: error: invalid storage class for function ‘wakeup1’
+  560 | static void wakeup1(void *chan)
+      |             ^~~~~~~
+proc.c:643:1: error: expected declaration or statement at end of input
+  643 | }
+      | ^
+proc.c: At top level:
+proc.c:23:13: error: ‘wakeup1’ used but never defined [-Werror]
+   23 | static void wakeup1(void *chan);
+      |             ^~~~~~~
+proc.c:612:6: error: ‘procdump’ defined but not used [-Werror=unused-function]
+  612 | void procdump(void)
+      |      ^~~~~~~~
+proc.c:587:5: error: ‘kill’ defined but not used [-Werror=unused-function]
+  587 | int kill(int pid)
+      |     ^~~~
+proc.c:577:6: error: ‘wakeup’ defined but not used [-Werror=unused-function]
+  577 | void wakeup(void *chan)
+      |      ^~~~~~
+proc.c:519:6: error: ‘sleep’ defined but not used [-Werror=unused-function]
+  519 | void sleep(void *chan, struct spinlock *lk)
+      |      ^~~~~
+proc.c:498:6: error: ‘forkret’ defined but not used [-Werror=unused-function]
+  498 | void forkret(void)
+      |      ^~~~~~~
+proc.c:488:6: error: ‘yield’ defined but not used [-Werror=unused-function]
+  488 | void yield(void)
+      |      ^~~~~
+cc1: all warnings being treated as errors
+make: *** [<builtin>: proc.o] Error 1
+
+
+test build FAILED
+ (build xv6 using make)
+ make failed (error 2)
+
+Skipped 14 tests.
+To keep testing after failing a test, use flag '-c' or '--continue'

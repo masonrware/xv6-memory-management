@@ -1,0 +1,823 @@
+bio.c:    b->next = bcache.head.next;
+bio.c:    b->prev = &bcache.head;
+bio.c:    initsleeplock(&b->lock, "buffer");
+bio.c:    bcache.head.next->prev = b;
+bio.c:  for(b = bcache.head.next; b != &bcache.head; b = b->next){
+bio.c:    if(b->dev == dev && b->blockno == blockno){
+bio.c:      b->refcnt++;
+bio.c:      acquiresleep(&b->lock);
+bio.c:  for(b = bcache.head.prev; b != &bcache.head; b = b->prev){
+bio.c:    if(b->refcnt == 0 && (b->flags & B_DIRTY) == 0) {
+bio.c:      b->dev = dev;
+bio.c:      b->blockno = blockno;
+bio.c:      b->flags = 0;
+bio.c:      b->refcnt = 1;
+bio.c:      acquiresleep(&b->lock);
+bio.c:  if((b->flags & B_VALID) == 0) {
+bio.c:  if(!holdingsleep(&b->lock))
+bio.c:  b->flags |= B_DIRTY;
+bio.c:  if(!holdingsleep(&b->lock))
+bio.c:  releasesleep(&b->lock);
+bio.c:  b->refcnt--;
+bio.c:  if (b->refcnt == 0) {
+bio.c:    b->next->prev = b->prev;
+bio.c:    b->prev->next = b->next;
+bio.c:    b->next = bcache.head.next;
+bio.c:    b->prev = &bcache.head;
+bio.c:    bcache.head.next->prev = b;
+bootmain.c:// bootasm.S has put the processor into protected 32-bit mode.
+bootmain.c:  if(elf->magic != ELF_MAGIC)
+bootmain.c:  ph = (struct proghdr*)((uchar*)elf + elf->phoff);
+bootmain.c:  eph = ph + elf->phnum;
+bootmain.c:    pa = (uchar*)ph->paddr;
+bootmain.c:    readseg(pa, ph->filesz, ph->off);
+bootmain.c:    if(ph->memsz > ph->filesz)
+bootmain.c:      stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
+bootmain.c:  entry = (void(*)(void))(elf->entry);
+bootmain.c:  outb(0x1F7, 0x20);  // cmd 0x20 - read sectors
+bootmain.c:  pa -= offset % SECTSIZE;
+bootmain.c:  // We'd write more to memory than asked, but it doesn't matter --
+console.c:    x = -xx;
+console.c:    buf[i++] = '-';
+console.c:  while(--i >= 0)
+console.c:    pos += 80 - pos%80;
+console.c:    if(pos > 0) --pos;
+console.c:    pos -= 80;
+console.c:    memset(crt+pos, 0, sizeof(crt[0])*(24*80 - pos));
+console.c:#define C(x)  ((x)-'@')  // Control-x
+console.c:            input.buf[(input.e-1) % INPUT_BUF] != '\n'){
+console.c:        input.e--;
+console.c:        input.e--;
+console.c:      if(c != 0 && input.e-input.r < INPUT_BUF){
+console.c:      if(myproc()->killed){
+console.c:        return -1;
+console.c:        // caller gets a 0-byte result.
+console.c:        input.r--;
+console.c:    --n;
+console.c:  return target - n;
+exec.c:    return -1;
+exec.c:  clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
+exec.c:    sp = (sp - (strlen(argv[argc]) + 1)) & ~3;
+exec.c:  ustack[2] = sp - (argc+1)*4;  // argv pointer
+exec.c:  sp -= (3+argc+1) * 4;
+exec.c:  safestrcpy(curproc->name, last, sizeof(curproc->name));
+exec.c:  oldpgdir = curproc->pgdir;
+exec.c:  curproc->pgdir = pgdir;
+exec.c:  curproc->sz = sz;
+exec.c:  curproc->tf->eip = elf.entry;  // main
+exec.c:  curproc->tf->esp = sp;
+exec.c:  return -1;
+file.c:    if(f->ref == 0){
+file.c:      f->ref = 1;
+file.c:  if(f->ref < 1)
+file.c:  f->ref++;
+file.c:  if(f->ref < 1)
+file.c:  if(--f->ref > 0){
+file.c:  f->ref = 0;
+file.c:  f->type = FD_NONE;
+file.c:  if(f->type == FD_INODE){
+file.c:    ilock(f->ip);
+file.c:    stati(f->ip, st);
+file.c:    iunlock(f->ip);
+file.c:  return -1;
+file.c:  if(f->readable == 0)
+file.c:    return -1;
+file.c:  if(f->type == FD_PIPE)
+file.c:    return piperead(f->pipe, addr, n);
+file.c:  if(f->type == FD_INODE){
+file.c:    ilock(f->ip);
+file.c:    if((r = readi(f->ip, addr, f->off, n)) > 0)
+file.c:      f->off += r;
+file.c:    iunlock(f->ip);
+file.c:  if(f->writable == 0)
+file.c:    return -1;
+file.c:  if(f->type == FD_PIPE)
+file.c:    return pipewrite(f->pipe, addr, n);
+file.c:  if(f->type == FD_INODE){
+file.c:    // i-node, indirect block, allocation blocks,
+file.c:    // and 2 blocks of slop for non-aligned writes.
+file.c:    int max = ((MAXOPBLOCKS-1-1-2) / 2) * 512;
+file.c:      int n1 = n - i;
+file.c:      ilock(f->ip);
+file.c:      if ((r = writei(f->ip, addr + i, f->off, n1)) > 0)
+file.c:        f->off += r;
+file.c:      iunlock(f->ip);
+file.c:    return i == n ? n : -1;
+forktest.c:  for(; n > 0; n--){
+forktest.c:  if(wait() != -1){
+fs.c://   + Log: crash recovery for multi-step updates.
+fs.c:// This file contains the low-level file system manipulation
+fs.c:// routines.  The (higher-level) system call implementations
+fs.c:  memmove(sb, bp->data, sizeof(*sb));
+fs.c:  memset(bp->data, 0, BSIZE);
+fs.c:      if((bp->data[bi/8] & m) == 0){  // Is block free?
+fs.c:        bp->data[bi/8] |= m;  // Mark block in use.
+fs.c:  if((bp->data[bi/8] & m) == 0)
+fs.c:  bp->data[bi/8] &= ~m;
+fs.c:// The kernel keeps a cache of in-use inodes in memory
+fs.c:// inodes include book-keeping information that is
+fs.c:// not stored on disk: ip->ref and ip->valid.
+fs.c:// An inode and its in-memory representation go through a
+fs.c://   is non-zero. ialloc() allocates, and iput() frees if
+fs.c://   is free if ip->ref is zero. Otherwise ip->ref tracks
+fs.c://   the number of in-memory pointers to the entry (open
+fs.c://   cache entry is only correct when ip->valid is 1.
+fs.c://   the disk and sets ip->valid, while iput() clears
+fs.c://   ip->valid if ip->ref has fallen to zero.
+fs.c://   ... examine and modify ip->xxx ...
+fs.c:// get a long-term reference to an inode (as for an open file)
+fs.c:// pathname lookup. iget() increments ip->ref so that the inode
+fs.c:// multi-step atomic operations.
+fs.c:// The icache.lock spin-lock protects the allocation of icache
+fs.c:// entries. Since ip->ref indicates whether an entry is free,
+fs.c:// and ip->dev and ip->inum indicate which i-node an entry
+fs.c:// An ip->lock sleep-lock protects all ip-> fields other than ref,
+fs.c:// dev, and inum.  One must hold ip->lock in order to
+fs.c:// read or write that inode's ip->valid, ip->size, ip->type, &c.
+fs.c:    dip = (struct dinode*)bp->data + inum%IPB;
+fs.c:    if(dip->type == 0){  // a free inode
+fs.c:      dip->type = type;
+fs.c:// Copy a modified in-memory inode to disk.
+fs.c:// Must be called after every change to an ip->xxx field
+fs.c:// that lives on disk, since i-node cache is write-through.
+fs.c:// Caller must hold ip->lock.
+fs.c:  bp = bread(ip->dev, IBLOCK(ip->inum, sb));
+fs.c:  dip = (struct dinode*)bp->data + ip->inum%IPB;
+fs.c:  dip->type = ip->type;
+fs.c:  dip->major = ip->major;
+fs.c:  dip->minor = ip->minor;
+fs.c:  dip->nlink = ip->nlink;
+fs.c:  dip->size = ip->size;
+fs.c:  memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
+fs.c:// and return the in-memory copy. Does not lock
+fs.c:    if(ip->ref > 0 && ip->dev == dev && ip->inum == inum){
+fs.c:      ip->ref++;
+fs.c:    if(empty == 0 && ip->ref == 0)    // Remember empty slot.
+fs.c:  ip->dev = dev;
+fs.c:  ip->inum = inum;
+fs.c:  ip->ref = 1;
+fs.c:  ip->valid = 0;
+fs.c:  ip->ref++;
+fs.c:  if(ip == 0 || ip->ref < 1)
+fs.c:  acquiresleep(&ip->lock);
+fs.c:  if(ip->valid == 0){
+fs.c:    bp = bread(ip->dev, IBLOCK(ip->inum, sb));
+fs.c:    dip = (struct dinode*)bp->data + ip->inum%IPB;
+fs.c:    ip->type = dip->type;
+fs.c:    ip->major = dip->major;
+fs.c:    ip->minor = dip->minor;
+fs.c:    ip->nlink = dip->nlink;
+fs.c:    ip->size = dip->size;
+fs.c:    memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
+fs.c:    ip->valid = 1;
+fs.c:    if(ip->type == 0)
+fs.c:  if(ip == 0 || !holdingsleep(&ip->lock) || ip->ref < 1)
+fs.c:  releasesleep(&ip->lock);
+fs.c:// Drop a reference to an in-memory inode.
+fs.c:  acquiresleep(&ip->lock);
+fs.c:  if(ip->valid && ip->nlink == 0){
+fs.c:    int r = ip->ref;
+fs.c:      ip->type = 0;
+fs.c:      ip->valid = 0;
+fs.c:  releasesleep(&ip->lock);
+fs.c:  ip->ref--;
+fs.c:// are listed in ip->addrs[].  The next NINDIRECT blocks are
+fs.c:// listed in block ip->addrs[NDIRECT].
+fs.c:    if((addr = ip->addrs[bn]) == 0)
+fs.c:      ip->addrs[bn] = addr = balloc(ip->dev);
+fs.c:  bn -= NDIRECT;
+fs.c:    if((addr = ip->addrs[NDIRECT]) == 0)
+fs.c:      ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+fs.c:    bp = bread(ip->dev, addr);
+fs.c:    a = (uint*)bp->data;
+fs.c:      a[bn] = addr = balloc(ip->dev);
+fs.c:// and has no in-memory reference to it (is
+fs.c:    if(ip->addrs[i]){
+fs.c:      bfree(ip->dev, ip->addrs[i]);
+fs.c:      ip->addrs[i] = 0;
+fs.c:  if(ip->addrs[NDIRECT]){
+fs.c:    bp = bread(ip->dev, ip->addrs[NDIRECT]);
+fs.c:    a = (uint*)bp->data;
+fs.c:        bfree(ip->dev, a[j]);
+fs.c:    bfree(ip->dev, ip->addrs[NDIRECT]);
+fs.c:    ip->addrs[NDIRECT] = 0;
+fs.c:  ip->size = 0;
+fs.c:// Caller must hold ip->lock.
+fs.c:  st->dev = ip->dev;
+fs.c:  st->ino = ip->inum;
+fs.c:  st->type = ip->type;
+fs.c:  st->nlink = ip->nlink;
+fs.c:  st->size = ip->size;
+fs.c:// Caller must hold ip->lock.
+fs.c:  if(ip->type == T_DEV){
+fs.c:    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].read)
+fs.c:      return -1;
+fs.c:    return devsw[ip->major].read(ip, dst, n);
+fs.c:  if(off > ip->size || off + n < off)
+fs.c:    return -1;
+fs.c:  if(off + n > ip->size)
+fs.c:    n = ip->size - off;
+fs.c:    bp = bread(ip->dev, bmap(ip, off/BSIZE));
+fs.c:    m = min(n - tot, BSIZE - off%BSIZE);
+fs.c:    memmove(dst, bp->data + off%BSIZE, m);
+fs.c:// Caller must hold ip->lock.
+fs.c:  if(ip->type == T_DEV){
+fs.c:    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].write)
+fs.c:      return -1;
+fs.c:    return devsw[ip->major].write(ip, src, n);
+fs.c:  if(off > ip->size || off + n < off)
+fs.c:    return -1;
+fs.c:    return -1;
+fs.c:    bp = bread(ip->dev, bmap(ip, off/BSIZE));
+fs.c:    m = min(n - tot, BSIZE - off%BSIZE);
+fs.c:    memmove(bp->data + off%BSIZE, src, m);
+fs.c:  if(n > 0 && off > ip->size){
+fs.c:    ip->size = off;
+fs.c:  if(dp->type != T_DIR)
+fs.c:  for(off = 0; off < dp->size; off += sizeof(de)){
+fs.c:      return iget(dp->dev, inum);
+fs.c:    return -1;
+fs.c:  for(off = 0; off < dp->size; off += sizeof(de)){
+fs.c:  len = path - s;
+fs.c:    ip = idup(myproc()->cwd);
+fs.c:    if(ip->type != T_DIR){
+grep.c:  while((n = read(fd, buf+m, sizeof(buf)-m-1)) > 0){
+grep.c:        write(1, p, q+1 - p);
+grep.c:      m -= p - buf;
+ide.c:// Simple PIO-based (non-DMA) IDE driver code.
+ide.c:// idequeue->qnext points to the next buf to be processed.
+ide.c:    return -1;
+ide.c:  ioapicenable(IRQ_IDE, ncpu - 1);
+ide.c:  if(b->blockno >= FSSIZE)
+ide.c:  int sector = b->blockno * sector_per_block;
+ide.c:  outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
+ide.c:  if(b->flags & B_DIRTY){
+ide.c:    outsl(0x1f0, b->data, BSIZE/4);
+ide.c:  idequeue = b->qnext;
+ide.c:  if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
+ide.c:    insl(0x1f0, b->data, BSIZE/4);
+ide.c:  b->flags |= B_VALID;
+ide.c:  b->flags &= ~B_DIRTY;
+ide.c:  if(!holdingsleep(&b->lock))
+ide.c:  if((b->flags & (B_VALID|B_DIRTY)) == B_VALID)
+ide.c:  if(b->dev != 0 && !havedisk1)
+ide.c:  acquire(&idelock);  //DOC:acquire-lock
+ide.c:  b->qnext = 0;
+ide.c:  for(pp=&idequeue; *pp; pp=&(*pp)->qnext)  //DOC:insert-queue
+ide.c:  while((b->flags & (B_VALID|B_DIRTY)) != B_VALID){
+init.c:// init: The initial user-level program
+ioapic.c:#define INT_LEVEL      0x00008000  // Level-triggered (vs edge-)
+ioapic.c:  ioapic->reg = reg;
+ioapic.c:  return ioapic->data;
+ioapic.c:  ioapic->reg = reg;
+ioapic.c:  ioapic->data = data;
+ioapic.c:  // Mark all interrupts edge-triggered, active high, disabled,
+ioapic.c:  // Mark interrupt edge-triggered, active high,
+kalloc.c:// and pipe buffers. Allocates 4096-byte pages.
+kalloc.c:  r->next = kmem.freelist;
+kalloc.c:// Allocate one 4096-byte page of physical memory.
+kalloc.c:    kmem.freelist = r->next;
+kbd.c:    return -1;
+kbd.c:      c += 'A' - 'a';
+kbd.c:      c += 'a' - 'A';
+lapic.c:// The local APIC manages internal (non-I/O) interrupts.
+lapic.c:  // Clear error status register (requires back-to-back writes).
+lapic.c:  // Send an Init Level De-Assert to synchronise arbitration ID's.
+lapic.c:  // Send INIT (level-triggered) interrupt to reset other CPU.
+lapic.c:  r->second = cmos_read(SECS);
+lapic.c:  r->minute = cmos_read(MINS);
+lapic.c:  r->hour   = cmos_read(HOURS);
+lapic.c:  r->day    = cmos_read(DAY);
+lapic.c:  r->month  = cmos_read(MONTH);
+lapic.c:  r->year   = cmos_read(YEAR);
+lapic.c:// qemu seems to use 24-hour GWT and the values are BCD encoded
+lapic.c:  r->year += 2000;
+log.c:// the count of in-progress FS system calls and returns.
+log.c:// The log is a physical re-do log containing disk blocks.
+log.c:// The on-disk log format:
+log.c:// Contents of the header block, used for both the on-disk header block
+log.c:    memmove(dbuf->data, lbuf->data, BSIZE);  // copy block to dst
+log.c:// Read the log header from disk into the in-memory log header
+log.c:  struct logheader *lh = (struct logheader *) (buf->data);
+log.c:  log.lh.n = lh->n;
+log.c:    log.lh.block[i] = lh->block[i];
+log.c:// Write in-memory log header to disk.
+log.c:  struct logheader *hb = (struct logheader *) (buf->data);
+log.c:  hb->n = log.lh.n;
+log.c:    hb->block[i] = log.lh.block[i];
+log.c:  log.outstanding -= 1;
+log.c:    memmove(to->data, from->data, BSIZE);
+log.c:    write_head();    // Write header to disk -- the real commit
+log.c:// Caller has modified b->data and is done with the buffer.
+log.c://   modify bp->data[]
+log.c:  if (log.lh.n >= LOGSIZE || log.lh.n >= log.size - 1)
+log.c:    if (log.lh.block[i] == b->blockno)   // log absorbtion
+log.c:  log.lh.block[i] = b->blockno;
+log.c:  b->flags |= B_DIRTY; // prevent eviction
+ls.c:  for(p=path+strlen(path); p >= path && *p != '/'; p--)
+ls.c:  // Return blank-padded name.
+ls.c:  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
+main.c:  xchg(&(mycpu()->started), 1); // tell startothers() we're up
+main.c:// Start the non-boot (AP) processors.
+main.c:    *(void**)(code-4) = stack + KSTACKSIZE;
+main.c:    *(void(**)(void))(code-8) = mpenter;
+main.c:    *(int**)(code-12) = (void *) V2P(entrypgdir);
+main.c:    lapicstartap(c->apicid, V2P(code));
+main.c:    while(c->started == 0)
+memide.c:  // no-op
+memide.c:  if(!holdingsleep(&b->lock))
+memide.c:  if((b->flags & (B_VALID|B_DIRTY)) == B_VALID)
+memide.c:  if(b->dev != 1)
+memide.c:  if(b->blockno >= disksize)
+memide.c:  p = memdisk + b->blockno*BSIZE;
+memide.c:  if(b->flags & B_DIRTY){
+memide.c:    b->flags &= ~B_DIRTY;
+memide.c:    memmove(p, b->data, BSIZE);
+memide.c:    memmove(b->data, p, BSIZE);
+memide.c:  b->flags |= B_VALID;
+mkfs.c:  nblocks = FSSIZE - nmeta;
+mkfs.c:      if(indirect[fbn - NDIRECT] == 0){
+mkfs.c:        indirect[fbn - NDIRECT] = xint(freeblock++);
+mkfs.c:      x = xint(indirect[fbn-NDIRECT]);
+mkfs.c:    n1 = min(n, (fbn + 1) * BSIZE - off);
+mkfs.c:    bcopy(p, buf + off - (fbn * BSIZE), n1);
+mkfs.c:    n -= n1;
+mp.c:    if((mp = mpsearch1(p-1024, 1024)))
+mp.c:  if((mp = mpsearch()) == 0 || mp->physaddr == 0)
+mp.c:  conf = (struct mpconf*) P2V((uint) mp->physaddr);
+mp.c:  if(conf->version != 1 && conf->version != 4)
+mp.c:  if(sum((uchar*)conf, conf->length) != 0)
+mp.c:  lapic = (uint*)conf->lapicaddr;
+mp.c:  for(p=(uchar*)(conf+1), e=(uchar*)conf+conf->length; p<e; ){
+mp.c:        cpus[ncpu].apicid = proc->apicid;  // apicid may differ from ncpu
+mp.c:      ioapicid = ioapic->apicno;
+mp.c:  if(mp->imcrp){
+picirq.c:#define IO_PIC1         0x20    // Master (IRQs 0-7)
+picirq.c:#define IO_PIC2         0xA0    // Slave (IRQs 8-15)
+pipe.c:  p->readopen = 1;
+pipe.c:  p->writeopen = 1;
+pipe.c:  p->nwrite = 0;
+pipe.c:  p->nread = 0;
+pipe.c:  initlock(&p->lock, "pipe");
+pipe.c:  (*f0)->type = FD_PIPE;
+pipe.c:  (*f0)->readable = 1;
+pipe.c:  (*f0)->writable = 0;
+pipe.c:  (*f0)->pipe = p;
+pipe.c:  (*f1)->type = FD_PIPE;
+pipe.c:  (*f1)->readable = 0;
+pipe.c:  (*f1)->writable = 1;
+pipe.c:  (*f1)->pipe = p;
+pipe.c:  return -1;
+pipe.c:  acquire(&p->lock);
+pipe.c:    p->writeopen = 0;
+pipe.c:    wakeup(&p->nread);
+pipe.c:    p->readopen = 0;
+pipe.c:    wakeup(&p->nwrite);
+pipe.c:  if(p->readopen == 0 && p->writeopen == 0){
+pipe.c:    release(&p->lock);
+pipe.c:    release(&p->lock);
+pipe.c:  acquire(&p->lock);
+pipe.c:    while(p->nwrite == p->nread + PIPESIZE){  //DOC: pipewrite-full
+pipe.c:      if(p->readopen == 0 || myproc()->killed){
+pipe.c:        release(&p->lock);
+pipe.c:        return -1;
+pipe.c:      wakeup(&p->nread);
+pipe.c:      sleep(&p->nwrite, &p->lock);  //DOC: pipewrite-sleep
+pipe.c:    p->data[p->nwrite++ % PIPESIZE] = addr[i];
+pipe.c:  wakeup(&p->nread);  //DOC: pipewrite-wakeup1
+pipe.c:  release(&p->lock);
+pipe.c:  acquire(&p->lock);
+pipe.c:  while(p->nread == p->nwrite && p->writeopen){  //DOC: pipe-empty
+pipe.c:    if(myproc()->killed){
+pipe.c:      release(&p->lock);
+pipe.c:      return -1;
+pipe.c:    sleep(&p->nread, &p->lock); //DOC: piperead-sleep
+pipe.c:  for(i = 0; i < n; i++){  //DOC: piperead-copy
+pipe.c:    if(p->nread == p->nwrite)
+pipe.c:    addr[i] = p->data[p->nread++ % PIPESIZE];
+pipe.c:  wakeup(&p->nwrite);  //DOC: piperead-wakeup
+pipe.c:  release(&p->lock);
+printf.c:    x = -xx;
+printf.c:    buf[i++] = '-';
+printf.c:  while(--i >= 0)
+proc.c:  return mycpu()-cpus;
+proc.c:  p = c->proc;
+proc.c:    if(p->state == UNUSED)
+proc.c:  p->state = EMBRYO;
+proc.c:  p->pid = nextpid++;
+proc.c:  if((p->kstack = kalloc()) == 0){
+proc.c:    p->state = UNUSED;
+proc.c:  sp = p->kstack + KSTACKSIZE;
+proc.c:  sp -= sizeof *p->tf;
+proc.c:  p->tf = (struct trapframe*)sp;
+proc.c:  sp -= 4;
+proc.c:  sp -= sizeof *p->context;
+proc.c:  p->context = (struct context*)sp;
+proc.c:  memset(p->context, 0, sizeof *p->context);
+proc.c:  p->context->eip = (uint)forkret;
+proc.c:  if((p->pgdir = setupkvm()) == 0)
+proc.c:  inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
+proc.c:  p->sz = PGSIZE;
+proc.c:  memset(p->tf, 0, sizeof(*p->tf));
+proc.c:  p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
+proc.c:  p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
+proc.c:  p->tf->es = p->tf->ds;
+proc.c:  p->tf->ss = p->tf->ds;
+proc.c:  p->tf->eflags = FL_IF;
+proc.c:  p->tf->esp = PGSIZE;
+proc.c:  p->tf->eip = 0;  // beginning of initcode.S
+proc.c:  safestrcpy(p->name, "initcode", sizeof(p->name));
+proc.c:  p->cwd = namei("/");
+proc.c:  // this assignment to p->state lets other cores
+proc.c:  p->state = RUNNABLE;
+proc.c:// Return 0 on success, -1 on failure.
+proc.c:  sz = curproc->sz;
+proc.c:    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
+proc.c:      return -1;
+proc.c:    if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
+proc.c:      return -1;
+proc.c:  curproc->sz = sz;
+proc.c:    return -1;
+proc.c:  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+proc.c:    kfree(np->kstack);
+proc.c:    np->kstack = 0;
+proc.c:    np->state = UNUSED;
+proc.c:    return -1;
+proc.c:  np->sz = curproc->sz;
+proc.c:  np->parent = curproc;
+proc.c:  *np->tf = *curproc->tf;
+proc.c:  np->tf->eax = 0;
+proc.c:    if(curproc->ofile[i])
+proc.c:      np->ofile[i] = filedup(curproc->ofile[i]);
+proc.c:  np->cwd = idup(curproc->cwd);
+proc.c:  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+proc.c:  pid = np->pid;
+proc.c:  np->state = RUNNABLE;
+proc.c:    if(curproc->ofile[fd]){
+proc.c:      fileclose(curproc->ofile[fd]);
+proc.c:      curproc->ofile[fd] = 0;
+proc.c:  iput(curproc->cwd);
+proc.c:  curproc->cwd = 0;
+proc.c:  wakeup1(curproc->parent);
+proc.c:    if(p->parent == curproc){
+proc.c:      p->parent = initproc;
+proc.c:      if(p->state == ZOMBIE)
+proc.c:  curproc->state = ZOMBIE;
+proc.c:// Return -1 if this process has no children.
+proc.c:      if(p->parent != curproc)
+proc.c:      if(p->state == ZOMBIE){
+proc.c:        pid = p->pid;
+proc.c:        kfree(p->kstack);
+proc.c:        p->kstack = 0;
+proc.c:        freevm(p->pgdir);
+proc.c:        p->pid = 0;
+proc.c:        p->parent = 0;
+proc.c:        p->name[0] = 0;
+proc.c:        p->killed = 0;
+proc.c:        p->state = UNUSED;
+proc.c:    if(!havekids || curproc->killed){
+proc.c:      return -1;
+proc.c:    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+proc.c:// Per-CPU process scheduler.
+proc.c://  - choose a process to run
+proc.c://  - swtch to start running that process
+proc.c://  - eventually that process transfers control
+proc.c:  c->proc = 0;
+proc.c:      if(p->state != RUNNABLE)
+proc.c:      c->proc = p;
+proc.c:      p->state = RUNNING;
+proc.c:      cprintf("about to run: %s [pid: %d]\n", c->proc->name, c->proc->pid);
+proc.c:      swtch(&(c->scheduler), p->context);
+proc.c:      // It should have changed its p->state before coming back.
+proc.c:      c->proc = 0;
+proc.c:// and have changed proc->state. Saves and restores
+proc.c:// be proc->intena and proc->ncli, but that would
+proc.c:  if(mycpu()->ncli != 1)
+proc.c:  if(p->state == RUNNING)
+proc.c:  intena = mycpu()->intena;
+proc.c:  swtch(&p->context, mycpu()->scheduler);
+proc.c:  mycpu()->intena = intena;
+proc.c:  myproc()->state = RUNNABLE;
+proc.c:  // change p->state and then call sched.
+proc.c:  p->chan = chan;
+proc.c:  p->state = SLEEPING;
+proc.c:  p->chan = 0;
+proc.c:    if(p->state == SLEEPING && p->chan == chan)
+proc.c:      p->state = RUNNABLE;
+proc.c:    if(p->pid == pid){
+proc.c:      p->killed = 1;
+proc.c:      if(p->state == SLEEPING)
+proc.c:        p->state = RUNNABLE;
+proc.c:  return -1;
+proc.c:    if(p->state == UNUSED)
+proc.c:    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+proc.c:      state = states[p->state];
+proc.c:    cprintf("%d %s %s", p->pid, state, p->name);
+proc.c:    if(p->state == SLEEPING){
+proc.c:      getcallerpcs((uint*)p->context->ebp+2, pc);
+sh.c:  switch(cmd->type){
+sh.c:    if(ecmd->argv[0] == 0)
+sh.c:    exec(ecmd->argv[0], ecmd->argv);
+sh.c:    printf(2, "exec %s failed\n", ecmd->argv[0]);
+sh.c:    close(rcmd->fd);
+sh.c:    if(open(rcmd->file, rcmd->mode) < 0){
+sh.c:      printf(2, "open %s failed\n", rcmd->file);
+sh.c:    runcmd(rcmd->cmd);
+sh.c:      runcmd(lcmd->left);
+sh.c:    runcmd(lcmd->right);
+sh.c:      runcmd(pcmd->left);
+sh.c:      runcmd(pcmd->right);
+sh.c:      runcmd(bcmd->cmd);
+sh.c:    return -1;
+sh.c:      buf[strlen(buf)-1] = 0;  // chop \n
+sh.c:  if(pid == -1)
+sh.c:  cmd->type = EXEC;
+sh.c:  cmd->type = REDIR;
+sh.c:  cmd->cmd = subcmd;
+sh.c:  cmd->file = file;
+sh.c:  cmd->efile = efile;
+sh.c:  cmd->mode = mode;
+sh.c:  cmd->fd = fd;
+sh.c:  cmd->type = PIPE;
+sh.c:  cmd->left = left;
+sh.c:  cmd->right = right;
+sh.c:  cmd->type = LIST;
+sh.c:  cmd->left = left;
+sh.c:  cmd->right = right;
+sh.c:  cmd->type = BACK;
+sh.c:  cmd->cmd = subcmd;
+sh.c:    panic("syntax - missing )");
+sh.c:    cmd->argv[argc] = q;
+sh.c:    cmd->eargv[argc] = eq;
+sh.c:  cmd->argv[argc] = 0;
+sh.c:  cmd->eargv[argc] = 0;
+sh.c:// NUL-terminate all the counted strings.
+sh.c:  switch(cmd->type){
+sh.c:    for(i=0; ecmd->argv[i]; i++)
+sh.c:      *ecmd->eargv[i] = 0;
+sh.c:    nulterminate(rcmd->cmd);
+sh.c:    *rcmd->efile = 0;
+sh.c:    nulterminate(pcmd->left);
+sh.c:    nulterminate(pcmd->right);
+sh.c:    nulterminate(lcmd->left);
+sh.c:    nulterminate(lcmd->right);
+sh.c:    nulterminate(bcmd->cmd);
+sleeplock.c:  initlock(&lk->lk, "sleep lock");
+sleeplock.c:  lk->name = name;
+sleeplock.c:  lk->locked = 0;
+sleeplock.c:  lk->pid = 0;
+sleeplock.c:  acquire(&lk->lk);
+sleeplock.c:  while (lk->locked) {
+sleeplock.c:    sleep(lk, &lk->lk);
+sleeplock.c:  lk->locked = 1;
+sleeplock.c:  lk->pid = myproc()->pid;
+sleeplock.c:  release(&lk->lk);
+sleeplock.c:  acquire(&lk->lk);
+sleeplock.c:  lk->locked = 0;
+sleeplock.c:  lk->pid = 0;
+sleeplock.c:  release(&lk->lk);
+sleeplock.c:  acquire(&lk->lk);
+sleeplock.c:  r = lk->locked && (lk->pid == myproc()->pid);
+sleeplock.c:  release(&lk->lk);
+spinlock.c:  lk->name = name;
+spinlock.c:  lk->locked = 0;
+spinlock.c:  lk->cpu = 0;
+spinlock.c:  while(xchg(&lk->locked, 1) != 0)
+spinlock.c:  lk->cpu = mycpu();
+spinlock.c:  getcallerpcs(&lk, lk->pcs);
+spinlock.c:  lk->pcs[0] = 0;
+spinlock.c:  lk->cpu = 0;
+spinlock.c:  // Both the C compiler and the hardware may re-order loads and
+spinlock.c:  // Release the lock, equivalent to lk->locked = 0.
+spinlock.c:  asm volatile("movl $0, %0" : "+m" (lk->locked) : );
+spinlock.c:  ebp = (uint*)v - 2;
+spinlock.c:  r = lock->locked && lock->cpu == mycpu();
+spinlock.c:  if(mycpu()->ncli == 0)
+spinlock.c:    mycpu()->intena = eflags & FL_IF;
+spinlock.c:  mycpu()->ncli += 1;
+spinlock.c:    panic("popcli - interruptible");
+spinlock.c:  if(--mycpu()->ncli < 0)
+spinlock.c:  if(mycpu()->ncli == 0 && mycpu()->intena)
+string.c:  while(n-- > 0){
+string.c:      return *s1 - *s2;
+string.c:    while(n-- > 0)
+string.c:      *--d = *--s;
+string.c:    while(n-- > 0)
+string.c:    n--, p++, q++;
+string.c:  return (uchar)*p - (uchar)*q;
+string.c:  while(n-- > 0 && (*s++ = *t++) != 0)
+string.c:  while(n-- > 0)
+string.c:// Like strncpy but guaranteed to NUL-terminate.
+string.c:  while(--n > 0 && (*s++ = *t++) != 0)
+syscall.c:  if(addr >= curproc->sz || addr+4 > curproc->sz)
+syscall.c:    return -1;
+syscall.c:// Fetch the nul-terminated string at addr from the current process.
+syscall.c:// Doesn't actually copy the string - just sets *pp to point at it.
+syscall.c:  if(addr >= curproc->sz)
+syscall.c:    return -1;
+syscall.c:  ep = (char*)curproc->sz;
+syscall.c:      return s - *pp;
+syscall.c:  return -1;
+syscall.c:// Fetch the nth 32-bit system call argument.
+syscall.c:  return fetchint((myproc()->tf->esp) + 4 + 4*n, ip);
+syscall.c:// Fetch the nth word-sized system call argument as a pointer
+syscall.c:    return -1;
+syscall.c:  if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz)
+syscall.c:    return -1;
+syscall.c:// Fetch the nth word-sized system call argument as a string pointer.
+syscall.c:// Check that the pointer is valid and the string is nul-terminated.
+syscall.c:    return -1;
+syscall.c:  num = curproc->tf->eax;
+syscall.c:    curproc->tf->eax = syscalls[num]();
+syscall.c:            curproc->pid, curproc->name, num);
+syscall.c:    curproc->tf->eax = -1;
+sysfile.c:// File-system system calls.
+sysfile.c:// Fetch the nth word-sized system call argument as a file descriptor
+sysfile.c:    return -1;
+sysfile.c:  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
+sysfile.c:    return -1;
+sysfile.c:    if(curproc->ofile[fd] == 0){
+sysfile.c:      curproc->ofile[fd] = f;
+sysfile.c:  return -1;
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:  myproc()->ofile[fd] = 0;
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:  if(ip->type == T_DIR){
+sysfile.c:    return -1;
+sysfile.c:  ip->nlink++;
+sysfile.c:  if(dp->dev != ip->dev || dirlink(dp, name, ip->inum) < 0){
+sysfile.c:  ip->nlink--;
+sysfile.c:  return -1;
+sysfile.c:  for(off=2*sizeof(de); off<dp->size; off+=sizeof(de)){
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:  if(ip->nlink < 1)
+sysfile.c:  if(ip->type == T_DIR && !isdirempty(ip)){
+sysfile.c:  if(ip->type == T_DIR){
+sysfile.c:    dp->nlink--;
+sysfile.c:  ip->nlink--;
+sysfile.c:  return -1;
+sysfile.c:    if(type == T_FILE && ip->type == T_FILE)
+sysfile.c:  if((ip = ialloc(dp->dev, type)) == 0)
+sysfile.c:  ip->major = major;
+sysfile.c:  ip->minor = minor;
+sysfile.c:  ip->nlink = 1;
+sysfile.c:    dp->nlink++;  // for ".."
+sysfile.c:    // No ip->nlink++ for ".": avoid cyclic ref count.
+sysfile.c:    if(dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
+sysfile.c:  if(dirlink(dp, name, ip->inum) < 0)
+sysfile.c:    return -1;
+sysfile.c:      return -1;
+sysfile.c:      return -1;
+sysfile.c:    if(ip->type == T_DIR && omode != O_RDONLY){
+sysfile.c:      return -1;
+sysfile.c:    return -1;
+sysfile.c:  f->type = FD_INODE;
+sysfile.c:  f->ip = ip;
+sysfile.c:  f->off = 0;
+sysfile.c:  f->readable = !(omode & O_WRONLY);
+sysfile.c:  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:  if(ip->type != T_DIR){
+sysfile.c:    return -1;
+sysfile.c:  iput(curproc->cwd);
+sysfile.c:  curproc->cwd = ip;
+sysfile.c:    return -1;
+sysfile.c:      return -1;
+sysfile.c:      return -1;
+sysfile.c:      return -1;
+sysfile.c:    return -1;
+sysfile.c:    return -1;
+sysfile.c:  fd0 = -1;
+sysfile.c:      myproc()->ofile[fd0] = 0;
+sysfile.c:    return -1;
+sysproc.c:  if (argint(0, &n) < 0) return -1;
+sysproc.c:  if (n < 0 || n > 20) return -1;
+sysproc.c:  int prev_nice = myproc()->nice;
+sysproc.c:  myproc()->nice = n;
+sysproc.c:  if (argptr(0 &p) < 0) return -1;
+sysproc.c:    return -1;
+sysproc.c:  return myproc()->pid;
+sysproc.c:    return -1;
+sysproc.c:  addr = myproc()->sz;
+sysproc.c:    return -1;
+sysproc.c:    return -1;
+sysproc.c:  while(ticks - ticks0 < n){
+sysproc.c:    if(myproc()->killed){
+sysproc.c:      return -1;
+trap.c:  if(tf->trapno == T_SYSCALL){
+trap.c:    if(myproc()->killed)
+trap.c:    myproc()->tf = tf;
+trap.c:    if(myproc()->killed)
+trap.c:  switch(tf->trapno){
+trap.c:            cpuid(), tf->cs, tf->eip);
+trap.c:    if(myproc() == 0 || (tf->cs&3) == 0){
+trap.c:              tf->trapno, cpuid(), tf->eip, rcr2());
+trap.c:            "eip 0x%x addr 0x%x--kill proc\n",
+trap.c:            myproc()->pid, myproc()->name, tf->trapno,
+trap.c:            tf->err, cpuid(), tf->eip, rcr2());
+trap.c:    myproc()->killed = 1;
+trap.c:  if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
+trap.c:  if(myproc() && myproc()->state == RUNNING &&
+trap.c:     tf->trapno == T_IRQ0+IRQ_TIMER)
+trap.c:  if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
+uart.c:  // Acknowledge pre-existing interrupt conditions;
+uart.c:    return -1;
+uart.c:    return -1;
+ulib.c:  return (uchar)*p - (uchar)*q;
+ulib.c:    return -1;
+ulib.c:    n = n*10 + *s++ - '0';
+ulib.c:  while(n-- > 0)
+umalloc.c:  bp = (Header*)ap - 1;
+umalloc.c:  for(p = freep; !(bp > p && bp < p->s.ptr); p = p->s.ptr)
+umalloc.c:    if(p >= p->s.ptr && (bp > p || bp < p->s.ptr))
+umalloc.c:  if(bp + bp->s.size == p->s.ptr){
+umalloc.c:    bp->s.size += p->s.ptr->s.size;
+umalloc.c:    bp->s.ptr = p->s.ptr->s.ptr;
+umalloc.c:    bp->s.ptr = p->s.ptr;
+umalloc.c:  if(p + p->s.size == bp){
+umalloc.c:    p->s.size += bp->s.size;
+umalloc.c:    p->s.ptr = bp->s.ptr;
+umalloc.c:    p->s.ptr = bp;
+umalloc.c:  if(p == (char*)-1)
+umalloc.c:  hp->s.size = nu;
+umalloc.c:  nunits = (nbytes + sizeof(Header) - 1)/sizeof(Header) + 1;
+umalloc.c:  for(p = prevp->s.ptr; ; prevp = p, p = p->s.ptr){
+umalloc.c:    if(p->s.size >= nunits){
+umalloc.c:      if(p->s.size == nunits)
+umalloc.c:        prevp->s.ptr = p->s.ptr;
+umalloc.c:        p->s.size -= nunits;
+umalloc.c:        p += p->s.size;
+umalloc.c:        p->s.size = nunits;
+usertests.c:// does chdir() call iput(p->cwd) in a transaction?
+usertests.c:// does exit() call iput(p->cwd) in a transaction?
+usertests.c://      return -1;
+usertests.c:      if(n == MAXFILE - 1){
+usertests.c:    printf(1, "link non-existant succeeded! oops\n");
+usertests.c:      i = de.name[1] - '0';
+usertests.c:    printf(1, "unlink dd (non-empty dir) succeeded!\n");
+usertests.c:    printf(1, "unlink non-empty dd succeeded!\n");
+usertests.c:  for(; n > 0; n--){
+usertests.c:  if(wait() != -1){
+usertests.c:    printf(stdout, "sbrk test failed post-fork\n");
+usertests.c:  amt = (BIG) - (uint)a;
+usertests.c:  lastaddr = (char*) (BIG-1);
+usertests.c:  // can one de-allocate?
+usertests.c:  c = sbrk(-4096);
+usertests.c:  if(c != a - 4096){
+usertests.c:  // can one re-allocate that page?
+usertests.c:    printf(stdout, "sbrk re-allocation failed, a %x c %x\n", a, c);
+usertests.c:    printf(stdout, "sbrk de-allocation didn't really deallocate\n");
+usertests.c:  c = sbrk(-(sbrk(0) - oldbrk));
+usertests.c:      sbrk(BIG - (uint)sbrk(0));
+usertests.c:    if(pids[i] != -1)
+usertests.c:    if(pids[i] == -1)
+usertests.c:    sbrk(-(sbrk(0) - oldbrk));
+usertests.c:    if(link("nosuchfile", (char*)p) != -1){
+usertests.c:  unlink("bigarg-ok");
+usertests.c:    for(i = 0; i < MAXARG-1; i++)
+usertests.c:    args[MAXARG-1] = 0;
+usertests.c:    fd = open("bigarg-ok", O_CREATE);
+usertests.c:  fd = open("bigarg-ok", 0);
+usertests.c:  unlink("bigarg-ok");
+usertests.c:    nfiles--;
+usertests.c:  read(fd, sbrk(0) - 1, -1);
+usertests.c:    printf(1, "already ran user tests -- rebuild fs.img\n");
+vm.c:  c->gdt[SEG_KCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, 0);
+vm.c:  c->gdt[SEG_KDATA] = SEG(STA_W, 0, 0xffffffff, 0);
+vm.c:  c->gdt[SEG_UCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, DPL_USER);
+vm.c:  c->gdt[SEG_UDATA] = SEG(STA_W, 0, 0xffffffff, DPL_USER);
+vm.c:  lgdt(c->gdt, sizeof(c->gdt));
+vm.c:// be page-aligned.
+vm.c:  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+vm.c:      return -1;
+vm.c:    if(mappages(pgdir, k->virt, k->phys_end - k->phys_start,
+vm.c:                (uint)k->phys_start, k->perm) < 0) {
+vm.c:// Switch h/w page table register to the kernel-only page table,
+vm.c:  if(p->kstack == 0)
+vm.c:  if(p->pgdir == 0)
+vm.c:  mycpu()->gdt[SEG_TSS] = SEG16(STS_T32A, &mycpu()->ts,
+vm.c:                                sizeof(mycpu()->ts)-1, 0);
+vm.c:  mycpu()->gdt[SEG_TSS].s = 0;
+vm.c:  mycpu()->ts.ss0 = SEG_KDATA << 3;
+vm.c:  mycpu()->ts.esp0 = (uint)p->kstack + KSTACKSIZE;
+vm.c:  mycpu()->ts.iomb = (ushort) 0xFFFF;
+vm.c:  lcr3(V2P(p->pgdir));  // switch to process's address space
+vm.c:// Load a program segment into pgdir.  addr must be page-aligned
+vm.c:    if(sz - i < PGSIZE)
+vm.c:      n = sz - i;
+vm.c:      return -1;
+vm.c:// newsz.  oldsz and newsz need not be page-aligned, nor does newsz
+vm.c:      a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
+vm.c:      return -1;
+vm.c:    n = PGSIZE - (va - va0);
+vm.c:    memmove(pa0 + (va - va0), buf, n);
+vm.c:    len -= n;

@@ -93,13 +93,6 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
-  // Populate process values
-  curproc->nice = 0;
-  curproc->cpu = 0;
-  curproc->priority = 0;
-  curproc->ticks = 0;
-  curproc->sleep_ticks = 0;
-
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;

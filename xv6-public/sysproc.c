@@ -6,47 +6,22 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
-#include "psched.h"
-#include "syscall.h"
 
-/*
-* BEGINNING OF ADDED CODE FOR P4
-*/
-
-/// @brief nice system call for proc to voluntarily decrease priority
-/// @param n ticks count to set process priority to
-/// @return the old nice value, pre replacement  
-int
-sys_nice(void)
+// TODO: implement
+int 
+mmap(void)
 {
-  int n;
- 
-  if (argint(0, &n) < 0) return -1;
-
-  if (n < 0 || n > 20) return -1;
-
-  int prev_nice = myproc()->nice;
-  myproc()->nice = n;
-  return prev_nice;
-}
-
-/// @brief getschedstate system call for user process to view state of scheduled processes
-/// @param pinfo user-provided structure for population with scheduler info
-/// @return status code
-int
-sys_getschedstate(void) {
-  struct pschedinfo* pinfo;
-
-  if (argptr(0, (void*)&pinfo, sizeof(*pinfo)) < 0) return -1;
-  if ((void *) pinfo == (void *) 0) return -1;
-
-  populate_pschedinfo(pinfo);
+  // void *addr, size_t length, int prot, int flags, int fd, off_t offset
   return 0;
 }
 
-/*
-* END OF ADDED CODE FOR P4
-*/
+// TODO: implement
+int 
+munmap(void)
+{
+  // void *addr, size_t length
+  return 0;
+}
 
 int
 sys_fork(void)
@@ -102,14 +77,10 @@ sys_sleep(void)
 {
   int n;
   uint ticks0;
-    
-  
+
   if(argint(0, &n) < 0)
     return -1;
   acquire(&tickslock);
-  
-  myproc()->sleep_ticks = n;
-
   ticks0 = ticks;
   while(ticks - ticks0 < n){
     if(myproc()->killed){
@@ -118,7 +89,6 @@ sys_sleep(void)
     }
     sleep(&ticks, &tickslock);
   }
-
   release(&tickslock);
   return 0;
 }

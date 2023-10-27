@@ -49,11 +49,6 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  int nice;					           // nice value for process
-  int cpu;                     // cpu tick count for process (recent cpu usage)
-  int priority;                // nice + cpu (decayed every second)
-  int ticks;				           // total ticks the proc has been running for
-  int sleep_ticks;			       // ticks that proc is to be sleeping for
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -7,22 +7,6 @@
 #include "mmu.h"
 #include "proc.h"
 
-// TODO: implement
-int 
-mmap(void)
-{
-  // void *addr, size_t length, int prot, int flags, int fd, off_t offset
-  return 0;
-}
-
-// TODO: implement
-int 
-munmap(void)
-{
-  // void *addr, size_t length
-  return 0;
-}
-
 int
 sys_fork(void)
 {

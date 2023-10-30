@@ -15,8 +15,6 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
-#include <sys/types.h>
-#include <stddef.h>
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -52,38 +50,6 @@ fdalloc(struct file *f)
     }
   }
   return -1;
-}
-
-// TODO: implement
-int 
-mmap(void)
-{
-  // void *addr, size_t length, int prot, int flags, int fd, off_t offset
-  void* addr;
-  int length; // where is size_t?
-  int prot;
-  int flags;
-  int fd;
-  int offset; // where is off_t defined?
-  struct file* f;
-
-  // invalid arg check
-  if (argptr(0, (char**) &addr, sizeof(void*)) < 0 || 
-      argint(1, &length) < 0 || 
-      argint(2, &prot) < 0 ||
-      argint(3, &flags) < 0 ||
-      argfd(4, &fd, &f) < 0 ||
-      argint(5, &offset) < 0) return -1;
-
-  return 0;
-}
-
-// TODO: implement
-int 
-munmap(void)
-{
-  // void *addr, size_t length
-  return 0;
 }
 
 int
@@ -475,4 +441,29 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
+}
+
+int sys_mmap(void){
+	// void *addr, int length, int prot, int flags, int fd, int offset
+  void* addr;
+  int length; 
+  int prot;
+  int flags;
+  int fd;
+  int offset; 
+  struct file* f;
+
+  // invalid arg check
+  if (argptr(0, (char**) &addr, sizeof(void*)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0) return -1;
+	return 0;
+}
+
+int sys_munmap(void){
+	// void *addr, int length
+  void* addr;
+  int length;
+
+  // invalid arg check
+  if (argptr(0, (char**) &addr, sizeof(void*)) < 0 || argint(1, &length) < 0) return -1;
+	return 0;
 }

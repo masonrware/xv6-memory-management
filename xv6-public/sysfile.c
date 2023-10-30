@@ -476,45 +476,27 @@ int sys_mmap(void){
       return -1;
     }
 
-    // start with the first address
-    uint end_last = MIN_ADDR;
-    uint start_next = 0;
-
     int empty = 1;
-
+   
     for (int idx = 0; idx < 100; idx++) {
       if(p->vma[idx].valid == 1) {
-        // if the provided address points to an already-allocated vma
+        empty = 0;
+        
+        // if the provided address points to this allocated vma
         if(arg_addr == p->vma[idx].start) {
           return -1;
         }
-        end_last = p->vma[idx].end;
       }
-      // if the vma is invalid, we could fit here - let's see
       else {
-        start
-      }
-    }
-
-    // make sure that the provided address is available and that there is space for this fixed request
-    for (int idx = 0; idx < 99; idx++) {
-      if(p->vma[idx].valid == 1) {
-        // if the provided address is in an allocated vma
-        if(p->vma[idx].start <= arg_addr && p->vma[idx].end > arg_addr) {
-          return -1;
-        }        
-        // it is not within the current vma, check if it is smaller than the next one
-        if(arg_addr < p->vma[idx+1].start) {
-          // if there isn't enough space for it before the next vma (non-inclusive)
-          if(((p->vma[idx+1].start)-(p->vma[idx].end)) <= length) {
-            return -1;
-          }
+        // if this vma is the provided address
+        if(arg_addr == p->vma[idx].start) {
+          // TODO: check how big the space is, if not big enough error
         }
       }
     }
-    // we iterated over the entire vma for this proc and verified that the provided address is valid and fits
-    // in between allocations
-    start_addr = arg_addr;
+    // TODO: determine how the above for loop can identify the proper starting address
+
+    // start_addr = arg_addr;
   }
   // We have to find an address 
   else {

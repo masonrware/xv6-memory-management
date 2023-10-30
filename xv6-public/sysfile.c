@@ -459,7 +459,96 @@ int sys_mmap(void){
 
   // invalid arg check
   if (argptr(0, (char**) &addr, sizeof(void*)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0) return -1;
-	return 0;
+ 
+  struct *proc p = myproc();
+
+  /*
+  * Find the starting address or return an error
+  */
+  
+  uint start_addr = 0;
+  uint arg_addr = (int) addr;
+
+  // We must use the provided address
+  if(flags & MAP_FIXED == 0) {
+    // if the address provided is not page-addressable
+    if(arg_addr % PGSIZE != 0) {
+      return -1;
+    }
+
+    // start with the first address
+    uint end_last = MIN_ADDR;
+    uint start_next = 0;
+
+    int empty = 1;
+
+    for (int idx = 0; idx < 100; idx++) {
+      if(p->vma[idx].valid == 1) {
+        // if the provided address points to an already-allocated vma
+        if(arg_addr == p->vma[idx].start) {
+          return -1;
+        }
+        end_last = p->vma[idx].end;
+      }
+      // if the vma is invalid, we could fit here - let's see
+      else {
+        start
+      }
+    }
+
+    // make sure that the provided address is available and that there is space for this fixed request
+    for (int idx = 0; idx < 99; idx++) {
+      if(p->vma[idx].valid == 1) {
+        // if the provided address is in an allocated vma
+        if(p->vma[idx].start <= arg_addr && p->vma[idx].end > arg_addr) {
+          return -1;
+        }        
+        // it is not within the current vma, check if it is smaller than the next one
+        if(arg_addr < p->vma[idx+1].start) {
+          // if there isn't enough space for it before the next vma (non-inclusive)
+          if(((p->vma[idx+1].start)-(p->vma[idx].end)) <= length) {
+            return -1;
+          }
+        }
+      }
+    }
+    // we iterated over the entire vma for this proc and verified that the provided address is valid and fits
+    // in between allocations
+    start_addr = arg_addr;
+  }
+  // We have to find an address 
+  else {
+    // start with the first address
+    uint end_last = MIN_ADDR;
+    uint start_next = 0;
+
+    int empty = 1;
+
+    for (int idx = 0; idx < 100; idx++) {
+      // if the current vma is allocated
+      if(p->vma[idx].valid == 1) {
+        empty = 0;
+        start_next = p->vma[idx].start;
+        // if there is not enough space between the end of the last and the start of the next, keep looking
+        if(start_next - end_last <= length) {
+          end_last = p->vma[idx].end;
+          continue;
+        }
+        // we have enough space
+        else {
+          start_addr = end_last+1;
+        }
+      }
+    }    
+    if(empty) {
+      start_addr = end_last+1;
+    }
+  }
+  // TODO: populate vma for proc
+  // we have start addr
+  // end addr will be start addr + length (rounded up)
+
+  return 0;
 }
 
 int sys_munmap(void){

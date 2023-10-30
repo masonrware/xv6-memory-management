@@ -1,3 +1,6 @@
+#include <sys/types.h>
+#include <stddef.h>
+
 struct stat;
 struct rtcdate;
 

@@ -443,6 +443,10 @@ sys_pipe(void)
   return 0;
 }
 
+/*
+* P5 SYSCALL CODE
+*/
+
 int sys_mmap(void){
 	// void *addr, int length, int prot, int flags, int fd, int offset
   void* addr;

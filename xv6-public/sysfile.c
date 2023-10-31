@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "mmap.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -553,6 +554,8 @@ int sys_munmap(void){
   struct proc* p = myproc();
   end_addr = arg_addr + length;
 
+
+
   // iterate through vmas for vma to free
   for (int i = 0; i < 100; i++){
 
@@ -563,6 +566,9 @@ int sys_munmap(void){
       break;
     }
   }
+
+
+
   // no mapping found
   if (vm == (void*)0) return -1;
 

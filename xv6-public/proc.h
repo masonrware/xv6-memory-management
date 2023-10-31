@@ -42,6 +42,7 @@ struct vm_area {
   int prot;
   int flags;
   int fd;
+  int space_after;
   struct file* f;
   struct vm_area* next;
 };
@@ -61,7 +62,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  struct vm_area* head;		   // head of VMA linked list
+  struct vm_area head;		     // head of VMA linked list
+  struct vm_area tail;         // tail of VMA linked list
 };
 
 // Process memory is laid out contiguously, low addresses first:

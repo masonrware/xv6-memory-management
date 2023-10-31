@@ -461,9 +461,22 @@ int sys_pipe(void)
  * P5 SYSCALL CODE
  */
 
-void create_vma(struct vm_area *prev, struct vm_area *next, int valid, uint start, uint end, int len, int prot, int flags, int fd, int space_after, struct file *f)
+void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd, struct file *f)
 {
-  // end addr will be start addr + length (rounded up) - either do that before, or do it here?
+  struct vm_area *vma = 0;
+
+  vma->valid = 1;
+  vma->start = start;
+  vma->end = PGROUNDUP(start+len)-1;
+  vma->len = vma->end - start;
+  vma->prot = prot;
+  vma->flags = flags;
+  vma->fd = fd;
+  vma->space_after = next->start - vma->end;
+  vma->f = f;
+  vma->next = next;
+
+  prev->next = vma;
 }
 
 int sys_mmap(void)
@@ -488,8 +501,7 @@ int sys_mmap(void)
   uint arg_addr = (int)addr;
 
   // TODO:
-  // 1. check inclusivity
-  // 4. populate vma struct
+  //!!! 1. check inclusivity
 
   // We must use the provided address
   if (flags & MAP_FIXED != 0)
@@ -519,13 +531,10 @@ int sys_mmap(void)
           // we found enough space
           start_addr = arg_addr;
           curr_vma.space_after - length;
-          // TODO call create vma
-          break;
+          create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+          return 0;
         }
-        else
-        {
-          return -1;
-        }
+        return -1;
       }
       // we hit the last allocated space
       else if (curr_vma.next->start == MAX_ADDR)
@@ -543,8 +552,8 @@ int sys_mmap(void)
             // we found enough space
             start_addr = arg_addr;
             curr_vma.space_after - length;
-            // TODO call create vma
-            break;
+            create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+            return 0;
           }
           else
           {
@@ -556,7 +565,7 @@ int sys_mmap(void)
       curr_vma = *curr_vma.next;
     }
   }
-  // We have to find an address
+  // MAP_FIXED not set, we have to find an address
   else
   {
     struct vm_area curr_vma = p->head;
@@ -568,8 +577,8 @@ int sys_mmap(void)
         // we found enough space
         start_addr = arg_addr;
         curr_vma.space_after - length;
-        // TODO call create vma
-        break;
+        create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+        return 0;
       }
       curr_vma = *curr_vma.next;
     }

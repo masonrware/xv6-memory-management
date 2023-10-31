@@ -498,10 +498,7 @@ int sys_mmap(void)
 
   uint start_addr = 0;
   // cast param to uint
-  uint arg_addr = (int)addr;
-
-  // TODO:
-  //!!! 1. check inclusivity
+  uint arg_addr = (uint) addr;
 
   // We must use the provided address
   if (flags & MAP_FIXED != 0)
@@ -514,77 +511,51 @@ int sys_mmap(void)
 
     struct vm_area curr_vma = p->head;
 
+    // iterate over allocated VMAs
     while (curr_vma.start != MAX_ADDR)
     {
-      // if provided address falls within allocated chunk
-      if (arg_addr >= curr_vma.start && arg_addr < curr_vma.end)
+      // if provided address falls within the allocated VMA
+      if (arg_addr >= curr_vma.start && arg_addr <= curr_vma.end)
       {
         return -1;
       }
 
-      // there is a valid next allocated chunk and the provided address is before it
-      if (curr_vma.next->start != MAX_ADDR && arg_addr < curr_vma.next->start)
-      {
-        // is there space for our allocation?
-        if (curr_vma.space_after > length)
-        {
-          // we found enough space
-          start_addr = arg_addr;
-          curr_vma.space_after - length;
-          create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
-          return 0;
-        }
-        return -1;
-      }
-      // we hit the last allocated space
-      else if (curr_vma.next->start == MAX_ADDR)
-      {
-        // if it is within the current (final allocated) block, error
-        if (arg_addr < curr_vma.end)
-        {
-          return -1;
-        }
-        // check last chunk of unallocated space - if any
-        else
-        {
-          if (curr_vma.space_after > length)
-          {
-            // we found enough space
-            start_addr = arg_addr;
-            curr_vma.space_after - length;
-            create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
-            return 0;
-          }
-          else
-          {
-            return -1;
-          }
-        }
-      }
-
-      curr_vma = *curr_vma.next;
-    }
-  }
-  // MAP_FIXED not set, we have to find an address
-  else
-  {
-    struct vm_area curr_vma = p->head;
-
-    while (curr_vma.start != MAX_ADDR)
-    {
-      if (curr_vma.space_after > length)
-      {
-        // we found enough space
+      // check the space after it
+      if(curr_vma.space_after > length) {
+         // we found enough space
         start_addr = arg_addr;
-        curr_vma.space_after - length;
+        curr_vma.space_after -= length;
         create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
         return 0;
       }
+
       curr_vma = *curr_vma.next;
     }
+
+    // we couldn't find any space, error out
+    return -1;
+  }
+  // MAP_FIXED not set, we have to find an address
+  struct vm_area curr_vma = p->head;
+
+  // iterate over allocated VMAs
+  while (curr_vma.start != MAX_ADDR)
+  {
+    if (curr_vma.space_after > length)
+    {
+      // we found enough space
+      start_addr = arg_addr;
+      curr_vma.space_after -= length;
+      create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+      return 0;
+    }
+    curr_vma = *curr_vma.next;
   }
 
-  return 0;
+  // we couldn't find any space, error out
+  return -1;
+
+  return -1;
 }
 
 int sys_munmap(void)

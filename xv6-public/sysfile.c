@@ -25,13 +25,13 @@ argfd(int n, int *pfd, struct file **pf)
   int fd;
   struct file *f;
 
-  if(argint(n, &fd) < 0)
+  if (argint(n, &fd) < 0)
     return -1;
-  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
+  if (fd < 0 || fd >= NOFILE || (f = myproc()->ofile[fd]) == 0)
     return -1;
-  if(pfd)
+  if (pfd)
     *pfd = fd;
-  if(pf)
+  if (pf)
     *pf = f;
   return 0;
 }
@@ -44,8 +44,10 @@ fdalloc(struct file *f)
   int fd;
   struct proc *curproc = myproc();
 
-  for(fd = 0; fd < NOFILE; fd++){
-    if(curproc->ofile[fd] == 0){
+  for (fd = 0; fd < NOFILE; fd++)
+  {
+    if (curproc->ofile[fd] == 0)
+    {
       curproc->ofile[fd] = f;
       return fd;
     }
@@ -53,86 +55,82 @@ fdalloc(struct file *f)
   return -1;
 }
 
-int
-sys_dup(void)
+int sys_dup(void)
 {
   struct file *f;
   int fd;
 
-  if(argfd(0, 0, &f) < 0)
+  if (argfd(0, 0, &f) < 0)
     return -1;
-  if((fd=fdalloc(f)) < 0)
+  if ((fd = fdalloc(f)) < 0)
     return -1;
   filedup(f);
   return fd;
 }
 
-int
-sys_read(void)
+int sys_read(void)
 {
   struct file *f;
   int n;
   char *p;
 
-  if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
+  if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
   return fileread(f, p, n);
 }
 
-int
-sys_write(void)
+int sys_write(void)
 {
   struct file *f;
   int n;
   char *p;
 
-  if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
+  if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
   return filewrite(f, p, n);
 }
 
-int
-sys_close(void)
+int sys_close(void)
 {
   int fd;
   struct file *f;
 
-  if(argfd(0, &fd, &f) < 0)
+  if (argfd(0, &fd, &f) < 0)
     return -1;
   myproc()->ofile[fd] = 0;
   fileclose(f);
   return 0;
 }
 
-int
-sys_fstat(void)
+int sys_fstat(void)
 {
   struct file *f;
   struct stat *st;
 
-  if(argfd(0, 0, &f) < 0 || argptr(1, (void*)&st, sizeof(*st)) < 0)
+  if (argfd(0, 0, &f) < 0 || argptr(1, (void *)&st, sizeof(*st)) < 0)
     return -1;
   return filestat(f, st);
 }
 
 // Create the path new as a link to the same inode as old.
-int
-sys_link(void)
+int sys_link(void)
 {
   char name[DIRSIZ], *new, *old;
   struct inode *dp, *ip;
 
-  if(argstr(0, &old) < 0 || argstr(1, &new) < 0)
+  if (argstr(0, &old) < 0 || argstr(1, &new) < 0)
     return -1;
 
   begin_op();
-  if((ip = namei(old)) == 0){
+  if ((ip = namei(old)) == 0)
+  {
     end_op();
     return -1;
   }
 
   ilock(ip);
-  if(ip->type == T_DIR){
+  if (ip->type == T_DIR)
+  {
     iunlockput(ip);
     end_op();
     return -1;
@@ -142,10 +140,11 @@ sys_link(void)
   iupdate(ip);
   iunlock(ip);
 
-  if((dp = nameiparent(new, name)) == 0)
+  if ((dp = nameiparent(new, name)) == 0)
     goto bad;
   ilock(dp);
-  if(dp->dev != ip->dev || dirlink(dp, name, ip->inum) < 0){
+  if (dp->dev != ip->dev || dirlink(dp, name, ip->inum) < 0)
+  {
     iunlockput(dp);
     goto bad;
   }
@@ -172,29 +171,30 @@ isdirempty(struct inode *dp)
   int off;
   struct dirent de;
 
-  for(off=2*sizeof(de); off<dp->size; off+=sizeof(de)){
-    if(readi(dp, (char*)&de, off, sizeof(de)) != sizeof(de))
+  for (off = 2 * sizeof(de); off < dp->size; off += sizeof(de))
+  {
+    if (readi(dp, (char *)&de, off, sizeof(de)) != sizeof(de))
       panic("isdirempty: readi");
-    if(de.inum != 0)
+    if (de.inum != 0)
       return 0;
   }
   return 1;
 }
 
-//PAGEBREAK!
-int
-sys_unlink(void)
+// PAGEBREAK!
+int sys_unlink(void)
 {
   struct inode *ip, *dp;
   struct dirent de;
   char name[DIRSIZ], *path;
   uint off;
 
-  if(argstr(0, &path) < 0)
+  if (argstr(0, &path) < 0)
     return -1;
 
   begin_op();
-  if((dp = nameiparent(path, name)) == 0){
+  if ((dp = nameiparent(path, name)) == 0)
+  {
     end_op();
     return -1;
   }
@@ -202,24 +202,26 @@ sys_unlink(void)
   ilock(dp);
 
   // Cannot unlink "." or "..".
-  if(namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
+  if (namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
     goto bad;
 
-  if((ip = dirlookup(dp, name, &off)) == 0)
+  if ((ip = dirlookup(dp, name, &off)) == 0)
     goto bad;
   ilock(ip);
 
-  if(ip->nlink < 1)
+  if (ip->nlink < 1)
     panic("unlink: nlink < 1");
-  if(ip->type == T_DIR && !isdirempty(ip)){
+  if (ip->type == T_DIR && !isdirempty(ip))
+  {
     iunlockput(ip);
     goto bad;
   }
 
   memset(&de, 0, sizeof(de));
-  if(writei(dp, (char*)&de, off, sizeof(de)) != sizeof(de))
+  if (writei(dp, (char *)&de, off, sizeof(de)) != sizeof(de))
     panic("unlink: writei");
-  if(ip->type == T_DIR){
+  if (ip->type == T_DIR)
+  {
     dp->nlink--;
     iupdate(dp);
   }
@@ -239,26 +241,27 @@ bad:
   return -1;
 }
 
-static struct inode*
+static struct inode *
 create(char *path, short type, short major, short minor)
 {
   struct inode *ip, *dp;
   char name[DIRSIZ];
 
-  if((dp = nameiparent(path, name)) == 0)
+  if ((dp = nameiparent(path, name)) == 0)
     return 0;
   ilock(dp);
 
-  if((ip = dirlookup(dp, name, 0)) != 0){
+  if ((ip = dirlookup(dp, name, 0)) != 0)
+  {
     iunlockput(dp);
     ilock(ip);
-    if(type == T_FILE && ip->type == T_FILE)
+    if (type == T_FILE && ip->type == T_FILE)
       return ip;
     iunlockput(ip);
     return 0;
   }
 
-  if((ip = ialloc(dp->dev, type)) == 0)
+  if ((ip = ialloc(dp->dev, type)) == 0)
     panic("create: ialloc");
 
   ilock(ip);
@@ -267,15 +270,16 @@ create(char *path, short type, short major, short minor)
   ip->nlink = 1;
   iupdate(ip);
 
-  if(type == T_DIR){  // Create . and .. entries.
-    dp->nlink++;  // for ".."
+  if (type == T_DIR)
+  {              // Create . and .. entries.
+    dp->nlink++; // for ".."
     iupdate(dp);
     // No ip->nlink++ for ".": avoid cyclic ref count.
-    if(dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
+    if (dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
       panic("create dots");
   }
 
-  if(dirlink(dp, name, ip->inum) < 0)
+  if (dirlink(dp, name, ip->inum) < 0)
     panic("create: dirlink");
 
   iunlockput(dp);
@@ -283,40 +287,46 @@ create(char *path, short type, short major, short minor)
   return ip;
 }
 
-int
-sys_open(void)
+int sys_open(void)
 {
   char *path;
   int fd, omode;
   struct file *f;
   struct inode *ip;
 
-  if(argstr(0, &path) < 0 || argint(1, &omode) < 0)
+  if (argstr(0, &path) < 0 || argint(1, &omode) < 0)
     return -1;
 
   begin_op();
 
-  if(omode & O_CREATE){
+  if (omode & O_CREATE)
+  {
     ip = create(path, T_FILE, 0, 0);
-    if(ip == 0){
+    if (ip == 0)
+    {
       end_op();
       return -1;
     }
-  } else {
-    if((ip = namei(path)) == 0){
+  }
+  else
+  {
+    if ((ip = namei(path)) == 0)
+    {
       end_op();
       return -1;
     }
     ilock(ip);
-    if(ip->type == T_DIR && omode != O_RDONLY){
+    if (ip->type == T_DIR && omode != O_RDONLY)
+    {
       iunlockput(ip);
       end_op();
       return -1;
     }
   }
 
-  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
-    if(f)
+  if ((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0)
+  {
+    if (f)
       fileclose(f);
     iunlockput(ip);
     end_op();
@@ -333,14 +343,14 @@ sys_open(void)
   return fd;
 }
 
-int
-sys_mkdir(void)
+int sys_mkdir(void)
 {
   char *path;
   struct inode *ip;
 
   begin_op();
-  if(argstr(0, &path) < 0 || (ip = create(path, T_DIR, 0, 0)) == 0){
+  if (argstr(0, &path) < 0 || (ip = create(path, T_DIR, 0, 0)) == 0)
+  {
     end_op();
     return -1;
   }
@@ -349,18 +359,18 @@ sys_mkdir(void)
   return 0;
 }
 
-int
-sys_mknod(void)
+int sys_mknod(void)
 {
   struct inode *ip;
   char *path;
   int major, minor;
 
   begin_op();
-  if((argstr(0, &path)) < 0 ||
-     argint(1, &major) < 0 ||
-     argint(2, &minor) < 0 ||
-     (ip = create(path, T_DEV, major, minor)) == 0){
+  if ((argstr(0, &path)) < 0 ||
+      argint(1, &major) < 0 ||
+      argint(2, &minor) < 0 ||
+      (ip = create(path, T_DEV, major, minor)) == 0)
+  {
     end_op();
     return -1;
   }
@@ -369,20 +379,21 @@ sys_mknod(void)
   return 0;
 }
 
-int
-sys_chdir(void)
+int sys_chdir(void)
 {
   char *path;
   struct inode *ip;
   struct proc *curproc = myproc();
-  
+
   begin_op();
-  if(argstr(0, &path) < 0 || (ip = namei(path)) == 0){
+  if (argstr(0, &path) < 0 || (ip = namei(path)) == 0)
+  {
     end_op();
     return -1;
   }
   ilock(ip);
-  if(ip->type != T_DIR){
+  if (ip->type != T_DIR)
+  {
     iunlockput(ip);
     end_op();
     return -1;
@@ -394,46 +405,48 @@ sys_chdir(void)
   return 0;
 }
 
-int
-sys_exec(void)
+int sys_exec(void)
 {
   char *path, *argv[MAXARG];
   int i;
   uint uargv, uarg;
 
-  if(argstr(0, &path) < 0 || argint(1, (int*)&uargv) < 0){
+  if (argstr(0, &path) < 0 || argint(1, (int *)&uargv) < 0)
+  {
     return -1;
   }
   memset(argv, 0, sizeof(argv));
-  for(i=0;; i++){
-    if(i >= NELEM(argv))
+  for (i = 0;; i++)
+  {
+    if (i >= NELEM(argv))
       return -1;
-    if(fetchint(uargv+4*i, (int*)&uarg) < 0)
+    if (fetchint(uargv + 4 * i, (int *)&uarg) < 0)
       return -1;
-    if(uarg == 0){
+    if (uarg == 0)
+    {
       argv[i] = 0;
       break;
     }
-    if(fetchstr(uarg, &argv[i]) < 0)
+    if (fetchstr(uarg, &argv[i]) < 0)
       return -1;
   }
   return exec(path, argv);
 }
 
-int
-sys_pipe(void)
+int sys_pipe(void)
 {
   int *fd;
   struct file *rf, *wf;
   int fd0, fd1;
 
-  if(argptr(0, (void*)&fd, 2*sizeof(fd[0])) < 0)
+  if (argptr(0, (void *)&fd, 2 * sizeof(fd[0])) < 0)
     return -1;
-  if(pipealloc(&rf, &wf) < 0)
+  if (pipealloc(&rf, &wf) < 0)
     return -1;
   fd0 = -1;
-  if((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0){
-    if(fd0 >= 0)
+  if ((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0)
+  {
+    if (fd0 >= 0)
       myproc()->ofile[fd0] = 0;
     fileclose(rf);
     fileclose(wf);
@@ -445,88 +458,112 @@ sys_pipe(void)
 }
 
 /*
-* P5 SYSCALL CODE
-*/
+ * P5 SYSCALL CODE
+ */
 
-int sys_mmap(void){
-	// void *addr, int length, int prot, int flags, int fd, int offset
-  void* addr;
-  int length; 
+int sys_mmap(void)
+{
+  // void *addr, int length, int prot, int flags, int fd, int offset
+  void *addr;
+  int length;
   int prot;
   int flags;
   int fd;
-  int offset; 
-  struct file* f;
+  int offset;
+  struct file *f;
 
   // invalid arg check
-  if (argptr(0, (char**) &addr, sizeof(void*)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0) return -1;
- 
-  struct *proc p = myproc();
+  if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
+    return -1;
 
-  /*
-  * Find the starting address or return an error
-  */
-  
+  struct proc *p = myproc();
+
   uint start_addr = 0;
-  uint arg_addr = (int) addr;
+  // cast param to uint
+  uint arg_addr = (int)addr;
+
+  // TODO:
+  // 1. check inclusivity
+  // 2. check sanity of below
+  // 3. finish recording and breaking logic
+  // 4. populate vma struct
+  // 5. deal with space after recalculations
 
   // We must use the provided address
-  if(flags & MAP_FIXED == 0) {
+  if (flags & MAP_FIXED != 0)
+  {
     // if the address provided is not page-addressable
-    if(arg_addr % PGSIZE != 0) {
+    if (arg_addr % PGSIZE != 0)
+    {
       return -1;
     }
 
-    int empty = 1;
-   
-    for (int idx = 0; idx < 100; idx++) {
-      if(p->vma[idx].valid == 1) {
-        empty = 0;
-        
-        // if the provided address points to this allocated vma
-        if(arg_addr == p->vma[idx].start) {
+    struct vm_area curr_vma = p->head;
+
+    while (curr_vma.start != MAX_ADDR)
+    {
+      // if provided address falls within allocated chunk
+      if (arg_addr >= curr_vma.start && arg_addr < curr_vma.end)
+      {
+        return -1;
+      }
+
+      // there is a valid next allocated chunk and the provided address is before it
+      if (curr_vma.next->start != MAX_ADDR && arg_addr < curr_vma.next->start)
+      {
+        // is there space for our allocation?
+        if (curr_vma.space_after > length)
+        {
+          // we found enough space
+          // TODO: record hit
+        }
+        else
+        {
           return -1;
         }
       }
-      else {
-        // if this vma is the provided address
-        if(arg_addr == p->vma[idx].start) {
-          // TODO: check how big the space is, if not big enough error
+      // we hit the last allocated space
+      else if (curr_vma.next->start == MAX_ADDR)
+      {
+        // if it is within the block, error
+        if (arg_addr < curr_vma.end)
+        {
+          return -1;
+        }
+        // check allocated space - if any
+        else
+        {
+          if (curr_vma.space_after > length)
+          {
+            // we found enough space
+            // TODO: record hit
+          }
+          else
+          {
+            return -1;
+          }
         }
       }
+
+      curr_vma = *curr_vma.next;
     }
-    // TODO: determine how the above for loop can identify the proper starting address
-
-    // start_addr = arg_addr;
   }
-  // We have to find an address 
-  else {
-    // start with the first address
-    uint end_last = MIN_ADDR;
-    uint start_next = 0;
+  // We have to find an address
+  else
+  {
+    struct vm_area curr_vma = p->head;
 
-    int empty = 1;
-
-    for (int idx = 0; idx < 100; idx++) {
-      // if the current vma is allocated
-      if(p->vma[idx].valid == 1) {
-        empty = 0;
-        start_next = p->vma[idx].start;
-        // if there is not enough space between the end of the last and the start of the next, keep looking
-        if(start_next - end_last <= length) {
-          end_last = p->vma[idx].end;
-          continue;
-        }
-        // we have enough space
-        else {
-          start_addr = end_last+1;
-        }
+    while (curr_vma.start != MAX_ADDR)
+    {
+      if (curr_vma.space_after > length)
+      {
+        // we found enough space
+        // TODO: record hit and break
       }
-    }    
-    if(empty) {
-      start_addr = end_last+1;
+      curr_vma = *curr_vma.next;
     }
   }
+
   // TODO: populate vma for proc
   // we have start addr
   // end addr will be start addr + length (rounded up)
@@ -534,46 +571,49 @@ int sys_mmap(void){
   return 0;
 }
 
-int sys_munmap(void){
-	// void *addr, int length
-  void* addr;
+int sys_munmap(void)
+{
+  // void *addr, int length
+  void *addr;
   int length;
   uint arg_addr;
   uint end_addr;
-  struct vm_area *vm = (void*)0;
+  struct vm_area *vm = (void *)0;
 
   // invalid arg check
-  if (argptr(0, (char**) &addr, sizeof(void*)) < 0 || argint(1, &length) < 0) return -1;
-	return 0;
+  if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
+    return -1;
+  return 0;
 
   arg_addr = (int)addr;
 
   // address not multiple of PGSIZE or out of bounds
-  if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR) return -1;
+  if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
+    return -1;
 
-  struct proc* p = myproc();
+  struct proc *p = myproc();
   end_addr = arg_addr + length;
 
-
-
   // iterate through vmas for vma to free
-  for (int i = 0; i < 100; i++){
+  for (int i = 0; i < 100; i++)
+  {
 
     // check if current mapping is valid, addr within bounds of VMA
-    if (p->vma[i].valid && arg_addr >= p->vma[i].start && end_addr <= p->vma[i].end){
+    if (p->vma[i].valid && arg_addr >= p->vma[i].start && end_addr <= p->vma[i].end)
+    {
       // matching mapping found, store in vm and exit loop
       vm = &p->vma[i];
       break;
     }
   }
 
-
-
   // no mapping found
-  if (vm == (void*)0) return -1;
+  if (vm == (void *)0)
+    return -1;
 
   // write back to file if shared flag is set
-  if (vm->flags & MAP_SHARED){
+  if (vm->flags & MAP_SHARED)
+  {
     // TODO: file backed mapping write back
   }
 
@@ -581,22 +621,22 @@ int sys_munmap(void){
 
   // mark end of freed memory at the next highest page
   end_addr = PGROUNDUP(end_addr);
-  
-  // remove entire mapping block: | A | A | A | -> |   |   |   |
-  if (arg_addr == vm->start && end_addr == vm->end){
 
+  // remove entire mapping block: | A | A | A | -> |   |   |   |
+  if (arg_addr == vm->start && end_addr == vm->end)
+  {
   }
   // first chunk of mapping to be freed: | A | A | A | -> |   | A | A | OR |   |   | A |
-  else if (arg_addr == vm->start && end_addr < vm->end){
-
+  else if (arg_addr == vm->start && end_addr < vm->end)
+  {
   }
   // second chunk of mapping to be freed: | A | A | A | -> | A | A |   | OR | A |   |   |
-  else if (arg_addr > vm->start && end_addr == vm->end){
-
+  else if (arg_addr > vm->start && end_addr == vm->end)
+  {
   }
   // mid section of mapping to be freed: | A | A | A | -> | A |   | B |
-  else if (arg_addr > vm->start && end_addr < vm->end){
-
+  else if (arg_addr > vm->start && end_addr < vm->end)
+  {
   }
   return 0;
 }

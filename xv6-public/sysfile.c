@@ -461,6 +461,11 @@ int sys_pipe(void)
  * P5 SYSCALL CODE
  */
 
+void create_vma(struct vm_area *prev, struct vm_area *next, int valid, uint start, uint end, int len, int prot, int flags, int fd, int space_after, struct file *f)
+{
+  // end addr will be start addr + length (rounded up) - either do that before, or do it here?
+}
+
 int sys_mmap(void)
 {
   // void *addr, int length, int prot, int flags, int fd, int offset
@@ -484,10 +489,7 @@ int sys_mmap(void)
 
   // TODO:
   // 1. check inclusivity
-  // 2. check sanity of below
-  // 3. finish recording and breaking logic
   // 4. populate vma struct
-  // 5. deal with space after recalculations
 
   // We must use the provided address
   if (flags & MAP_FIXED != 0)
@@ -515,7 +517,10 @@ int sys_mmap(void)
         if (curr_vma.space_after > length)
         {
           // we found enough space
-          // TODO: record hit
+          start_addr = arg_addr;
+          curr_vma.space_after - length;
+          // TODO call create vma
+          break;
         }
         else
         {
@@ -525,18 +530,21 @@ int sys_mmap(void)
       // we hit the last allocated space
       else if (curr_vma.next->start == MAX_ADDR)
       {
-        // if it is within the block, error
+        // if it is within the current (final allocated) block, error
         if (arg_addr < curr_vma.end)
         {
           return -1;
         }
-        // check allocated space - if any
+        // check last chunk of unallocated space - if any
         else
         {
           if (curr_vma.space_after > length)
           {
             // we found enough space
-            // TODO: record hit
+            start_addr = arg_addr;
+            curr_vma.space_after - length;
+            // TODO call create vma
+            break;
           }
           else
           {
@@ -558,46 +566,49 @@ int sys_mmap(void)
       if (curr_vma.space_after > length)
       {
         // we found enough space
-        // TODO: record hit and break
+        start_addr = arg_addr;
+        curr_vma.space_after - length;
+        // TODO call create vma
+        break;
       }
       curr_vma = *curr_vma.next;
     }
   }
 
-  // TODO: populate vma for proc
-  // we have start addr
-  // end addr will be start addr + length (rounded up)
-
   return 0;
 }
 
-int sys_munmap(void){
+int sys_munmap(void)
+{
   // void *addr, int length
-  void* addr;
+  void *addr;
   int length;
   uint arg_addr;
   uint end_addr;
-  struct vm_area *vm = (void*)0;
+  struct vm_area *vm = (void *)0;
 
   // invalid arg check
-  if (argptr(0, (char**) &addr, sizeof(void*)) < 0 || argint(1, &length) < 0) return -1;
+  if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
+    return -1;
   return 0;
 
   arg_addr = (int)addr;
 
   // address not multiple of PGSIZE or out of bounds
-  if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR) return -1;
+  if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
+    return -1;
 
-  struct proc* p = myproc();
+  struct proc *p = myproc();
   end_addr = arg_addr + length;
-
 
   struct vm_area curr = p->head;
   struct vm_area *prev = &curr;
 
   // iterate through VMAs to find VM to free
-  while (curr.start != 0x80000000){
-    if (curr.valid && arg_addr >= curr.start && end_addr <= curr.end){
+  while (curr.start != 0x80000000)
+  {
+    if (curr.valid && arg_addr >= curr.start && end_addr <= curr.end)
+    {
       vm = &curr;
       break;
     }
@@ -606,10 +617,12 @@ int sys_munmap(void){
   }
 
   // no mapping found
-  if (vm == (void*)0) return -1;
+  if (vm == (void *)0)
+    return -1;
 
   // write back to file if shared flag is set
-  if (vm->flags & MAP_SHARED){
+  if (vm->flags & MAP_SHARED)
+  {
     // TODO: file backed mapping write back
   }
 
@@ -617,31 +630,35 @@ int sys_munmap(void){
 
   // mark end of freed memory at the next highest page
   end_addr = PGROUNDUP(end_addr) - 1;
-  
+
   // remove entire mapping block: | A | A | A | ->  |   |   |   |
-  if (arg_addr == vm->start && end_addr == vm->end){
+  if (arg_addr == vm->start && end_addr == vm->end)
+  {
     // if (prev.start == 0x60000000){ // freeing first block (do I need this part?)
 
     // }
-    vm->valid = 1;               // make mem block available
+    vm->valid = 1;                // make mem block available
     prev->next = vm->next;        // link previous block to next block after curr (unlink curr)
     prev->space_after += vm->len; // add space from unlinked block to space avail. after previous block
   }
   // first chunk of mapping to be freed: | A | A | A | ->  |   | A | A |  OR  |   |   | A |
-  else if (arg_addr == vm->start && end_addr < vm->end){
-    int newlength = end_addr - arg_addr;      // length of chunk to be removed
-    vm->len -= newlength;                    // dec. length of curr by size of removed chunk
-    prev->space_after += newlength;            // inc. space available after previous block by size of removed chunk
+  else if (arg_addr == vm->start && end_addr < vm->end)
+  {
+    int newlength = end_addr - arg_addr; // length of chunk to be removed
+    vm->len -= newlength;                // dec. length of curr by size of removed chunk
+    prev->space_after += newlength;      // inc. space available after previous block by size of removed chunk
   }
   // second chunk of mapping to be freed: | A | A | A | ->  | A | A |   |  OR  | A |   |   |
-  else if (arg_addr > vm->start && end_addr == vm->end){
-    int newlength = end_addr - arg_addr;      // length of chunk to be removed
-    vm->len -= newlength;                    // dec. length of curr by size of removed chunk
-    vm->space_after += newlength;            // inc. space available after current block by size of removed chunk
+  else if (arg_addr > vm->start && end_addr == vm->end)
+  {
+    int newlength = end_addr - arg_addr; // length of chunk to be removed
+    vm->len -= newlength;                // dec. length of curr by size of removed chunk
+    vm->space_after += newlength;        // inc. space available after current block by size of removed chunk
   }
   // mid section of mapping to be freed: | A | A | A | ->  | A |   | B |
-  else if (arg_addr > vm->start && end_addr < vm->end){
-    int gaplength = end_addr - arg_addr;      // length of chunk to be removed
+  else if (arg_addr > vm->start && end_addr < vm->end)
+  {
+    int gaplength = end_addr - arg_addr; // length of chunk to be removed
     struct vm_area newnode;
     newnode.end = vm->end;
     // newnode.f = vm->f;

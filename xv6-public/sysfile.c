@@ -503,8 +503,8 @@ int sys_mmap(void)
   // We must use the provided address
   if (flags & MAP_FIXED != 0)
   {
-    // if the address provided is not page-addressable
-    if (arg_addr % PGSIZE != 0)
+    // if the address provided is not page-addressable or out of bounds
+    if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
     {
       return -1;
     }

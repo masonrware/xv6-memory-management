@@ -554,8 +554,6 @@ int sys_mmap(void)
 
   // we couldn't find any space, error out
   return -1;
-
-  return -1;
 }
 
 int sys_munmap(void)

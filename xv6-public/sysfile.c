@@ -537,8 +537,60 @@ int sys_munmap(void){
 	// void *addr, int length
   void* addr;
   int length;
+  uint arg_addr;
+  uint end_addr;
+  struct vm_area *vm = (void*)0;
 
   // invalid arg check
   if (argptr(0, (char**) &addr, sizeof(void*)) < 0 || argint(1, &length) < 0) return -1;
 	return 0;
+
+  arg_addr = (int)addr;
+
+  // address not multiple of PGSIZE or out of bounds
+  if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR) return -1;
+
+  struct proc* p = myproc();
+  end_addr = arg_addr + length;
+
+  // iterate through vmas for vma to free
+  for (int i = 0; i < 100; i++){
+
+    // check if current mapping is valid, addr within bounds of VMA
+    if (p->vma[i].valid && arg_addr >= p->vma[i].start && end_addr <= p->vma[i].end){
+      // matching mapping found, store in vm and exit loop
+      vm = &p->vma[i];
+      break;
+    }
+  }
+  // no mapping found
+  if (vm == (void*)0) return -1;
+
+  // write back to file if shared flag is set
+  if (vm->flags & MAP_SHARED){
+    // TODO: file backed mapping write back
+  }
+
+  // TODO: remove mappings from page table?
+
+  // mark end of freed memory at the next highest page
+  end_addr = PGROUNDUP(end_addr);
+  
+  // remove entire mapping block: | A | A | A | -> |   |   |   |
+  if (arg_addr == vm->start && end_addr == vm->end){
+
+  }
+  // first chunk of mapping to be freed: | A | A | A | -> |   | A | A | OR |   |   | A |
+  else if (arg_addr == vm->start && end_addr < vm->end){
+
+  }
+  // second chunk of mapping to be freed: | A | A | A | -> | A | A |   | OR | A |   |   |
+  else if (arg_addr > vm->start && end_addr == vm->end){
+
+  }
+  // mid section of mapping to be freed: | A | A | A | -> | A |   | B |
+  else if (arg_addr > vm->start && end_addr < vm->end){
+
+  }
+  return 0;
 }

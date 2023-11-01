@@ -563,14 +563,13 @@ int sys_munmap(void)
   int length;
   uint arg_addr;
   uint end_addr;
-  struct vm_area *vm = (void *)0;
+  struct vm_area *vm = 0;
 
   // invalid arg check
   if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
     return -1;
-  return 0;
 
-  arg_addr = (int)addr;
+  arg_addr = (uint)addr;
 
   // address not multiple of PGSIZE or out of bounds
   if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
@@ -583,7 +582,7 @@ int sys_munmap(void)
   struct vm_area *prev = &curr;
 
   // iterate through VMAs to find VM to free
-  while (curr.start != 0x80000000)
+  while (curr.start != MAX_ADDR)
   {
     if (curr.valid && arg_addr >= curr.start && end_addr <= curr.end)
     {
@@ -639,7 +638,7 @@ int sys_munmap(void)
     int gaplength = end_addr - arg_addr; // length of chunk to be removed
     struct vm_area newnode;
     newnode.end = vm->end;
-    // newnode.f = vm->f;
+    newnode.f = vm->f;
     newnode.fd = vm->fd;
     newnode.flags = vm->flags;
     newnode.len = vm->end - end_addr;

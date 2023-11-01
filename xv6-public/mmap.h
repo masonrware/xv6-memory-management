@@ -10,4 +10,8 @@
 #define PROT_READ 0x1
 #define PROT_WRITE 0x2
 
+/* VMA stuff */
+#define MAX_ADDR 0x80000000
+#define MIN_ADDR 0x60000000
+
 

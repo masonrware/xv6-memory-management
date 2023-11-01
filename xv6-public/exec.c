@@ -93,6 +93,22 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
+  // INITIALIZE PROC HEAD/TAIL
+  curproc->head.valid = 1;
+  curproc->head.start = 0x60000000;
+  curproc->head.end = 0x60000000;
+  curproc->head.len = 0;
+  curproc->head.space_after = 0x20000000; // subtract 1?
+  curproc->tail.valid = 0;
+  curproc->tail.start = 0x80000000;
+  curproc->tail.end = 0x80000000;
+  curproc->tail.len = 0;
+  curproc->tail.next = (void*)0;
+  curproc->head.next = &curproc->tail;
+  // Do we need other stuff initialized?
+
+
+
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;

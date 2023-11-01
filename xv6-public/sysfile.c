@@ -584,7 +584,7 @@ int sys_munmap(void)
   // iterate through VMAs to find VM to free
   while (curr.start != MAX_ADDR)
   {
-    if (curr.valid && arg_addr >= curr.start && end_addr <= curr.end)
+    if (arg_addr == curr.start)
     {
       vm = &curr;
       break;
@@ -609,48 +609,11 @@ int sys_munmap(void)
   end_addr = PGROUNDUP(end_addr) - 1;
 
   // remove entire mapping block: | A | A | A | ->  |   |   |   |
-  if (arg_addr == vm->start && end_addr == vm->end)
+  if (arg_addr == vm->start)
   {
-    // if (prev.start == 0x60000000){ // freeing first block (do I need this part?)
-
-    // }
     vm->valid = 1;                // make mem block available
     prev->next = vm->next;        // link previous block to next block after curr (unlink curr)
     prev->space_after += vm->len; // add space from unlinked block to space avail. after previous block
-  }
-  // first chunk of mapping to be freed: | A | A | A | ->  |   | A | A |  OR  |   |   | A |
-  else if (arg_addr == vm->start && end_addr < vm->end)
-  {
-    int newlength = end_addr - arg_addr; // length of chunk to be removed
-    vm->len -= newlength;                // dec. length of curr by size of removed chunk
-    prev->space_after += newlength;      // inc. space available after previous block by size of removed chunk
-  }
-  // second chunk of mapping to be freed: | A | A | A | ->  | A | A |   |  OR  | A |   |   |
-  else if (arg_addr > vm->start && end_addr == vm->end)
-  {
-    int newlength = end_addr - arg_addr; // length of chunk to be removed
-    vm->len -= newlength;                // dec. length of curr by size of removed chunk
-    vm->space_after += newlength;        // inc. space available after current block by size of removed chunk
-  }
-  // mid section of mapping to be freed: | A | A | A | ->  | A |   | B |
-  else if (arg_addr > vm->start && end_addr < vm->end)
-  {
-    int gaplength = end_addr - arg_addr; // length of chunk to be removed
-    struct vm_area newnode;
-    newnode.end = vm->end;
-    newnode.f = vm->f;
-    newnode.fd = vm->fd;
-    newnode.flags = vm->flags;
-    newnode.len = vm->end - end_addr;
-    newnode.next = vm->next;
-    newnode.space_after = vm->space_after;
-    newnode.start = end_addr + 1;
-    newnode.valid = 0;
-
-    vm->len = vm->len - gaplength - newnode.len;
-    vm->space_after = gaplength;
-    vm->next = &newnode;
-    vm->end = arg_addr - 1;
   }
   return 0;
 }

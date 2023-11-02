@@ -506,7 +506,7 @@ int sys_mmap(void)
   uint arg_addr = (uint) addr;
 
   // We must use the provided address
-  if (flags & MAP_FIXED != 0)
+  if ((flags & MAP_FIXED) != 0)
   {
     // if the address provided is not page-addressable or out of bounds
     if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
@@ -532,7 +532,7 @@ int sys_mmap(void)
           // we found enough space
           start_addr = arg_addr;
           curr_vma.space_after -= length;
-          create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
 
           char *pa = kalloc();
           if(pa == 0) {
@@ -541,7 +541,7 @@ int sys_mmap(void)
           int num_pages = length/PGSIZE;
           memset(pa, 0, num_pages*PGSIZE);
 
-          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, vm->prot)!=0){
+          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma->prot)!=0){
             kfree(pa);
             p->killed = 1;
           }
@@ -570,7 +570,7 @@ int sys_mmap(void)
       // we found enough space
       start_addr = curr_vma.end+1;
       curr_vma.space_after -= length;
-      create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+      create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
 
       char *pa = kalloc();
       if(pa == 0) {

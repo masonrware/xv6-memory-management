@@ -215,6 +215,7 @@ fork(void)
   *np->tf = *curproc->tf;
 
   // Copy mappings down to child.
+  // TODO check for MAP_PRIVATE vs. MAP_SHARED
   struct vm_area curr_vma = curproc->head;
   while(curr_vma.start != MAX_ADDR) {
     struct vm_area *src = 0;
@@ -226,7 +227,6 @@ fork(void)
     while(curr_child_vma.start != MAX_ADDR) {
       // TODO: what to do here?
       // break;
-
       curr_child_vma = *curr_child_vma.next;
     }
 

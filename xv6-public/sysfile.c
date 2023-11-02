@@ -520,15 +520,22 @@ int sys_mmap(void)
         return -1;
       }
 
-      // check the space after it
-      if(curr_vma.space_after > length) {
-         // we found enough space
-        start_addr = arg_addr;
-        curr_vma.space_after -= length;
-        create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
-        return 0;
-      }
+      // if the requested mapping is before the next VMA
+      if(arg_addr < curr_vma.next->start){
+        // if the requested allocation encroaches on the next VMA
+        if(arg_addr+length >= curr_vma.next->start) {
+          return -1;
+        }
 
+        // check the space after it
+        if(curr_vma.space_after > length) {
+          // we found enough space
+          start_addr = arg_addr;
+          curr_vma.space_after -= length;
+          create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+          return 0;
+        }
+      }
       curr_vma = *curr_vma.next;
     }
 
@@ -541,10 +548,11 @@ int sys_mmap(void)
   // iterate over allocated VMAs
   while (curr_vma.start != MAX_ADDR)
   {
-    if (curr_vma.space_after > length)
-    {
+    // check the space after it - request encroaching on next VMA is covered because the
+    // starting address is not arbitrary
+    if(curr_vma.space_after > length) {
       // we found enough space
-      start_addr = arg_addr;
+      start_addr = curr_vma.end+1;
       curr_vma.space_after -= length;
       create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
       return 0;

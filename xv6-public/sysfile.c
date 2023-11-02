@@ -484,6 +484,64 @@ int mmap_read(struct file *f, uint va, int offset, int size) {
   return 0;
 }
 
+/*
+* COPIED CODE FROM VM.C
+*/
+
+// Return the address of the PTE in page table pgdir
+// that corresponds to virtual address va.  If alloc!=0,
+// create any required page table pages.
+static pte_t *
+walkpgdir(pde_t *pgdir, const void *va, int alloc)
+{
+  pde_t *pde;
+  pte_t *pgtab;
+
+  pde = &pgdir[PDX(va)];
+  if(*pde & PTE_P){
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+  } else {
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+      return 0;
+    // Make sure all those PTE_P bits are zero.
+    memset(pgtab, 0, PGSIZE);
+    // The permissions here are overly generous, but they can
+    // be further restricted by the permissions in the page table
+    // entries, if necessary.
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+  }
+  return &pgtab[PTX(va)];
+}
+
+// Create PTEs for virtual addresses starting at va that refer to
+// physical addresses starting at pa. va and size might not
+// be page-aligned.
+static int
+mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+{
+  char *a, *last;
+  pte_t *pte;
+
+  a = (char*)PGROUNDDOWN((uint)va);
+  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+  for(;;){
+    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+      return -1;
+    if(*pte & PTE_P)
+      panic("remap");
+    *pte = pa | perm | PTE_P;
+    if(a == last)
+      break;
+    a += PGSIZE;
+    pa += PGSIZE;
+  }
+  return 0;
+}
+
+/*
+* END COPIED CODE FROM VM.C
+*/
+
 int sys_mmap(void)
 {
   // void *addr, int length, int prot, int flags, int fd, int offset
@@ -534,6 +592,7 @@ int sys_mmap(void)
           curr_vma.space_after -= length;
           create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
 
+          // allocate physical space and insert it into the page table
           char *pa = kalloc();
           if(pa == 0) {
             panic("kalloc");
@@ -572,6 +631,7 @@ int sys_mmap(void)
       curr_vma.space_after -= length;
       create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
 
+      // allocate physical space and insert it into the page table
       char *pa = kalloc();
       if(pa == 0) {
         panic("kalloc");

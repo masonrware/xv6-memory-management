@@ -522,11 +522,6 @@ int sys_mmap(void)
 
       // if the requested mapping is before the next VMA
       if(arg_addr < curr_vma.next->start){
-        // if the requested allocation encroaches on the next VMA
-        if(arg_addr+length >= curr_vma.next->start) {
-          return -1;
-        }
-
         // check the space after it
         if(curr_vma.space_after > length) {
           // we found enough space

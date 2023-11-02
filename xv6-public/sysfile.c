@@ -541,7 +541,7 @@ int sys_mmap(void)
           int num_pages = length/PGSIZE;
           memset(pa, 0, num_pages*PGSIZE);
 
-          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma->prot)!=0){
+          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
             kfree(pa);
             p->killed = 1;
           }
@@ -579,7 +579,7 @@ int sys_mmap(void)
       int num_pages = length/PGSIZE;
       memset(pa, 0, num_pages*PGSIZE);
 
-      if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, vm->prot)!=0){
+      if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
         kfree(pa);
         p->killed = 1;
       }

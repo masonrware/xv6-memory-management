@@ -528,6 +528,7 @@ int sys_mmap(void)
           start_addr = arg_addr;
           curr_vma.space_after -= length;
           create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+          // TODO: allocate space and add to page table here
           return 0;
         }
       }
@@ -550,6 +551,7 @@ int sys_mmap(void)
       start_addr = curr_vma.end+1;
       curr_vma.space_after -= length;
       create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+      // TODO: allocate space and add to page table here
       return 0;
     }
     curr_vma = *curr_vma.next;

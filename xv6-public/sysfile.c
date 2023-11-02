@@ -479,6 +479,11 @@ void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len,
   prev->next = vma;
 }
 
+// TODO implement below to read a file into user space
+int mmap_read(struct file *f, uint va, int offset, int size) {
+  return 0;
+}
+
 int sys_mmap(void)
 {
   // void *addr, int length, int prot, int flags, int fd, int offset
@@ -528,7 +533,22 @@ int sys_mmap(void)
           start_addr = arg_addr;
           curr_vma.space_after -= length;
           create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
-          // TODO: allocate space and add to page table here
+
+          char *pa = kalloc();
+          if(pa == 0) {
+            panic("kalloc");
+          }
+          int num_pages = length/PGSIZE;
+          memset(pa, 0, num_pages*PGSIZE);
+
+          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, vm->prot)!=0){
+            kfree(pa);
+            p->killed = 1;
+          }
+
+          // ??
+          // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
+
           return 0;
         }
       }
@@ -551,7 +571,22 @@ int sys_mmap(void)
       start_addr = curr_vma.end+1;
       curr_vma.space_after -= length;
       create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
-      // TODO: allocate space and add to page table here
+
+      char *pa = kalloc();
+      if(pa == 0) {
+        panic("kalloc");
+      }
+      int num_pages = length/PGSIZE;
+      memset(pa, 0, num_pages*PGSIZE);
+
+      if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, vm->prot)!=0){
+        kfree(pa);
+        p->killed = 1;
+      }
+      
+      // ??
+      // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
+
       return 0;
     }
     curr_vma = *curr_vma.next;

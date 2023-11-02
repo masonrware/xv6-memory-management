@@ -490,55 +490,55 @@ int mmap_read(struct file *f, uint va, int offset, int size) {
 * COPIED CODE FROM VM.C
 */
 
-// // Return the address of the PTE in page table pgdir
-// // that corresponds to virtual address va.  If alloc!=0,
-// // create any required page table pages.
-// static pte_t *
-// walkpgdir(pde_t *pgdir, const void *va, int alloc)
-// {
-//   pde_t *pde;
-//   pte_t *pgtab;
+// Return the address of the PTE in page table pgdir
+// that corresponds to virtual address va.  If alloc!=0,
+// create any required page table pages.
+static pte_t *
+walkpgdir(pde_t *pgdir, const void *va, int alloc)
+{
+  pde_t *pde;
+  pte_t *pgtab;
 
-//   pde = &pgdir[PDX(va)];
-//   if(*pde & PTE_P){
-//     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-//   } else {
-//     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
-//       return 0;
-//     // Make sure all those PTE_P bits are zero.
-//     memset(pgtab, 0, PGSIZE);
-//     // The permissions here are overly generous, but they can
-//     // be further restricted by the permissions in the page table
-//     // entries, if necessary.
-//     *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
-//   }
-//   return &pgtab[PTX(va)];
-// }
+  pde = &pgdir[PDX(va)];
+  if(*pde & PTE_P){
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+  } else {
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+      return 0;
+    // Make sure all those PTE_P bits are zero.
+    memset(pgtab, 0, PGSIZE);
+    // The permissions here are overly generous, but they can
+    // be further restricted by the permissions in the page table
+    // entries, if necessary.
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+  }
+  return &pgtab[PTX(va)];
+}
 
-// // Create PTEs for virtual addresses starting at va that refer to
-// // physical addresses starting at pa. va and size might not
-// // be page-aligned.
-// static int
-// mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
-// {
-//   char *a, *last;
-//   pte_t *pte;
+// Create PTEs for virtual addresses starting at va that refer to
+// physical addresses starting at pa. va and size might not
+// be page-aligned.
+static int
+mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+{
+  char *a, *last;
+  pte_t *pte;
 
-//   a = (char*)PGROUNDDOWN((uint)va);
-//   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
-//   for(;;){
-//     if((pte = walkpgdir(pgdir, a, 1)) == 0)
-//       return -1;
-//     if(*pte & PTE_P)
-//       panic("remap");
-//     *pte = pa | perm | PTE_P;
-//     if(a == last)
-//       break;
-//     a += PGSIZE;
-//     pa += PGSIZE;
-//   }
-//   return 0;
-// }
+  a = (char*)PGROUNDDOWN((uint)va);
+  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+  for(;;){
+    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+      return -1;
+    if(*pte & PTE_P)
+      panic("remap");
+    *pte = pa | perm | PTE_P;
+    if(a == last)
+      break;
+    a += PGSIZE;
+    pa += PGSIZE;
+  }
+  return 0;
+}
 
 /*
 * END COPIED CODE FROM VM.C
@@ -559,100 +559,100 @@ int sys_mmap(void)
   if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
     return -1;
 
-  // struct proc *p = myproc();
+  struct proc *p = myproc();
 
-  // uint start_addr = 0;
-  // // cast param to uint
-  // uint arg_addr = (uint) addr;
+  uint start_addr = 0;
+  // cast param to uint
+  uint arg_addr = (uint) addr;
 
-  // // We must use the provided address
-  // if ((flags & MAP_FIXED) != 0)
-  // {
-  //   // if the address provided is not page-addressable or out of bounds
-  //   if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
-  //   {
-  //     return -1;
-  //   }
+  // We must use the provided address
+  if ((flags & MAP_FIXED) != 0)
+  {
+    // if the address provided is not page-addressable or out of bounds
+    if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
+    {
+      return -1;
+    }
 
-  //   struct vm_area curr_vma = p->head;
+    struct vm_area curr_vma = p->head;
 
-  //   // iterate over allocated VMAs
-  //   while (curr_vma.start != MAX_ADDR)
-  //   {
-  //     // if provided address falls within the allocated VMA
-  //     if (arg_addr >= curr_vma.start && arg_addr <= curr_vma.end)
-  //     {
-  //       return -1;
-  //     }
+    // iterate over allocated VMAs
+    while (curr_vma.start != MAX_ADDR)
+    {
+      // if provided address falls within the allocated VMA
+      if (arg_addr >= curr_vma.start && arg_addr <= curr_vma.end)
+      {
+        return -1;
+      }
 
-  //     // if the requested mapping is before the next VMA
-  //     if(arg_addr < curr_vma.next->start){
-  //       // check the space after it
-  //       if(curr_vma.space_after > length) {
-  //         // we found enough space
-  //         start_addr = arg_addr;
-  //         curr_vma.space_after -= length;
-  //         create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
+      // if the requested mapping is before the next VMA
+      if(arg_addr < curr_vma.next->start){
+        // check the space after it
+        if(curr_vma.space_after > length) {
+          // we found enough space
+          start_addr = arg_addr;
+          curr_vma.space_after -= length;
+          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
 
-  //         // allocate physical space and insert it into the page table
-  //         char *pa = kalloc();
-  //         if(pa == 0) {
-  //           panic("kalloc");
-  //         }
-  //         int num_pages = length/PGSIZE;
-  //         memset(pa, 0, num_pages*PGSIZE);
+          // allocate physical space and insert it into the page table
+          char *pa = kalloc();
+          if(pa == 0) {
+            panic("kalloc");
+          }
+          int num_pages = length/PGSIZE;
+          memset(pa, 0, num_pages*PGSIZE);
 
-  //         if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
-  //           kfree(pa);
-  //           p->killed = 1;
-  //         }
+          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
+            kfree(pa);
+            p->killed = 1;
+          }
 
-  //         // ??
-  //         // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
+          // ??
+          // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
 
-  //         return 0;
-  //       }
-  //     }
-  //     curr_vma = *curr_vma.next;
-  //   }
+          return 0;
+        }
+      }
+      curr_vma = *curr_vma.next;
+    }
 
-  //   // we couldn't find any space, error out
-  //   return -1;
-  // }
-  // // MAP_FIXED not set, we have to find an address
-  // struct vm_area curr_vma = p->head;
+    // we couldn't find any space, error out
+    return -1;
+  }
+  // MAP_FIXED not set, we have to find an address
+  struct vm_area curr_vma = p->head;
 
-  // // iterate over allocated VMAs
-  // while (curr_vma.start != MAX_ADDR)
-  // {
-  //   // check the space after it - request encroaching on next VMA is covered because the
-  //   // starting address is not arbitrary
-  //   if(curr_vma.space_after > length) {
-  //     // we found enough space
-  //     start_addr = curr_vma.end+1;
-  //     curr_vma.space_after -= length;
-  //     create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
+  // iterate over allocated VMAs
+  while (curr_vma.start != MAX_ADDR)
+  {
+    // check the space after it - request encroaching on next VMA is covered because the
+    // starting address is not arbitrary
+    if(curr_vma.space_after > length) {
+      // we found enough space
+      start_addr = curr_vma.end+1;
+      curr_vma.space_after -= length;
+      create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
 
-  //     // allocate physical space and insert it into the page table
-  //     char *pa = kalloc();
-  //     if(pa == 0) {
-  //       panic("kalloc");
-  //     }
-  //     int num_pages = length/PGSIZE;
-  //     memset(pa, 0, num_pages*PGSIZE);
+      // allocate physical space and insert it into the page table
+      char *pa = kalloc();
+      if(pa == 0) {
+        panic("kalloc");
+      }
+      int num_pages = length/PGSIZE;
+      memset(pa, 0, num_pages*PGSIZE);
 
-  //     if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
-  //       kfree(pa);
-  //       p->killed = 1;
-  //     }
+      if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
+        kfree(pa);
+        p->killed = 1;
+      }
       
-  //     // ??
-  //     // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
+      // ??
+      // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
 
-  //     return 0;
-  //   }
-  //   curr_vma = *curr_vma.next;
-  // }
+      return 0;
+    }
+    curr_vma = *curr_vma.next;
+  }
 
   // we couldn't find any space, error out
   return -1;
@@ -663,59 +663,59 @@ int sys_munmap(void)
   // void *addr, int length
   void *addr;
   int length;
-  // uint arg_addr;
-  // uint end_addr;
-  // struct vm_area *vm = 0;
+  uint arg_addr;
+  uint end_addr;
+  struct vm_area *vm = 0;
 
   // invalid arg check
   if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
     return -1;
 
-  // arg_addr = (uint)addr;
+  arg_addr = (uint)addr;
 
-  // // address not multiple of PGSIZE or out of bounds
-  // if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
-  //   return -1;
+  // address not multiple of PGSIZE or out of bounds
+  if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
+    return -1;
 
-  // struct proc *p = myproc();
-  // end_addr = arg_addr + length;
+  struct proc *p = myproc();
+  end_addr = arg_addr + length;
 
-  // struct vm_area curr = p->head;
-  // struct vm_area *prev = &curr;
+  struct vm_area curr = p->head;
+  struct vm_area *prev = &curr;
 
-  // // iterate through VMAs to find VM to free
-  // while (curr.start != MAX_ADDR)
-  // {
-  //   if (arg_addr == curr.start)
-  //   {
-  //     vm = &curr;
-  //     break;
-  //   }
-  //   prev = &curr;
-  //   curr = *curr.next;
-  // }
+  // iterate through VMAs to find VM to free
+  while (curr.start != MAX_ADDR)
+  {
+    if (arg_addr == curr.start)
+    {
+      vm = &curr;
+      break;
+    }
+    prev = &curr;
+    curr = *curr.next;
+  }
 
-  // // no mapping found
-  // if (vm == (void *)0)
-  //   return -1;
+  // no mapping found
+  if (vm == (void *)0)
+    return -1;
 
-  // // write back to file if shared flag is set
-  // if (vm->flags & MAP_SHARED)
-  // {
-  //   // TODO: file backed mapping write back
-  // }
+  // write back to file if shared flag is set
+  if (vm->flags & MAP_SHARED)
+  {
+    // TODO: file backed mapping write back
+  }
 
-  // // TODO: remove mappings from page table?
+  // TODO: remove mappings from page table?
 
-  // // mark end of freed memory at the next highest page
-  // end_addr = PGROUNDUP(end_addr) - 1;
+  // mark end of freed memory at the next highest page
+  end_addr = PGROUNDUP(end_addr) - 1;
 
-  // // remove entire mapping block: | A | A | A | ->  |   |   |   |
-  // if (arg_addr == vm->start)
-  // {
-  //   vm->valid = 1;                // make mem block available
-  //   prev->next = vm->next;        // link previous block to next block after curr (unlink curr)
-  //   prev->space_after += vm->len; // add space from unlinked block to space avail. after previous block
-  // }
+  // remove entire mapping block: | A | A | A | ->  |   |   |   |
+  if (arg_addr == vm->start)
+  {
+    vm->valid = 1;                // make mem block available
+    prev->next = vm->next;        // link previous block to next block after curr (unlink curr)
+    prev->space_after += vm->len; // add space from unlinked block to space avail. after previous block
+  }
   return 0;
 }

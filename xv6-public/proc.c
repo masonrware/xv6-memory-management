@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "mmap.h"
 
 struct {
   struct spinlock lock;
@@ -174,6 +175,19 @@ growproc(int n)
   return 0;
 }
 
+void 
+copy_vma(struct vm_area *dst, struct vm_area *src) {
+  dst->valid = 1;
+  dst->start = src->start;
+  dst->end = src->end;
+  dst->len = src->len;
+  dst->prot = src->prot;
+  dst->flags = src->flags;
+  dst->fd = src->fd;
+  dst->f = src->f;
+  // *(dst->f).ref++;
+}
+
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
@@ -200,6 +214,11 @@ fork(void)
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
+  struct vm_area curr_vma = curproc->head;
+  while(curr_vma.start != MAX_ADDR) {
+    // TODO: copy VMAs from parent to child
+  }
+  
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 

@@ -556,7 +556,7 @@ int sys_mmap(void)
   struct file *f;
 
   // invalid arg check
-  if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
+  if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
     return -1;
 
   struct proc *p = myproc();
@@ -668,7 +668,7 @@ int sys_munmap(void)
   struct vm_area *vm = 0;
 
   // invalid arg check
-  if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
+  if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
     return -1;
 
   arg_addr = (uint)addr;

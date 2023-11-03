@@ -556,12 +556,21 @@ int sys_mmap(void)
   int flags;
   int fd;
   int offset;
-  struct file *f;
+  // struct file *f;
 
   // invalid arg check
-  if (argint(0, (int*)&addr) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
+  if (argptr(0, (void*)&addr, sizeof(void*)) < 0 ||
+        argint(1, &length) < 0 ||
+        argint(2, &prot) < 0 ||
+        argint(3, &flags) < 0 ||
+        argint(4, &fd) < 0 ||
+        argint(5, &offset) < 0)
+    {
+    cprintf("ARG ERR\n");
     return -1;
-
+  } else {
+    cprintf("%d, %d, %d, %d, %d, %d\n", (uint)addr, length, prot, flags, fd, offset);
+  }
   struct proc *p = myproc();
 
   uint start_addr = 0;

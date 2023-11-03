@@ -494,8 +494,8 @@ int sys_pipe(void)
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
 // static pte_t *
-// walkpgdir(pde_t *pgdir, const void *va, int alloc)
-// {
+walkpgdir(pde_t *pgdir, const void *va, int alloc)
+{
 //   pde_t *pde;
 //   pte_t *pgtab;
 
@@ -543,125 +543,91 @@ int sys_pipe(void)
 /*
 * END COPIED CODE FROM VM.C
 */
-
-int sys_mmap(void)
+int
+sys_mmap(void)
 {
   void *addr;
-  // int length;
-  // int prot;
-  // int flags;
-  // int fd;
-  // int offset;
+  int len, prot, flags, fd, offset;
+  if (argint(0, (int*)&addr) < 0 || argint(1, &len) < 0 || argint(2, &prot) < 0 ||
+      argint(3, &flags) < 0 || argint(4, &fd) < 0 || argint(5, &offset) < 0)
+    return -1;
+  return mmap(addr, len, prot, flags, fd, offset);
+}
 
-  // invalid arg check
-  // if (argptr(0, (void *)&addr, sizeof(uint)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argptr(4, (void *)&fd, sizeof(int)) < 0 || argint(5, &offset) < 0)
-  if(argptr(0, (void *) &addr, sizeof(uint)) < 0) {
-    cprintf("err\n");
+int
+mmap(void *addr, int len, int prot, int flags, int fd, int offset)
+{
+  struct proc *curproc = myproc();
+  uint start = (uint)addr;
+  uint end = start + len;
+  uint addr_offset = 0;
+
+  if (start != 0) {
+    // Ensure that the address is page-aligned
+    if (PGROUNDUP(start) != start) {
+      cprintf("mmap: Address not page-aligned\n");
+      return -1;
+    }
+  }
+
+  // Check flags for supported options
+  if (flags & ~MAP_ANON) {
+    cprintf("mmap: Unsupported flags\n");
     return -1;
   }
-  cprintf("%d\n", (uint) addr);
-  // cprintf("%d, %d, %d, %d, %d\n", length, prot, flags, fd, offset);
 
-  // struct proc *p = myproc();
+  if (len <= 0) {
+    cprintf("mmap: Invalid length\n");
+    return -1;
+  }
 
-  // uint start_addr = 0;
-  // // cast param to uint
-  // uint arg_addr = (uint) addr;
+  if (len > PGSIZE) {
+    cprintf("mmap: Mapping too large\n");
+    return -1;
+  }
 
-  // // We must use the provided address
-  // if ((flags & MAP_FIXED) != 0)
-  // {
-  //   cprintf("MAP_FIXED\n");
-  //   // if the address provided is not page-addressable or out of bounds
-  //   if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
-  //   {
-  //     return -1;
-  //   }
+  if (flags & MAP_ANON) {
+    // Anonymous memory mapping, allocate physical memory
+    for (uint a = start; a < end; a += PGSIZE) {
+      pde_t *pde = walkpgdir(curproc->pgdir, (char*)a, 1);
+      if (!pde) {
+        cprintf("mmap: Page directory entry allocation failed\n");
+        return -1;
+      }
+      pte_t *pte = mappages(curproc->pgdir, (void*)a, PGSIZE, prot);
+      if (!pte) {
+        cprintf("mmap: Page table entry allocation failed\n");
+        return -1;
+      }
+      if ((pte = walkpgdir(curproc->pgdir, (void*)a, 0)) == 0)
+        panic("mmap: walkpgdir");
+      char *mem = kalloc();
+      if (mem == 0) {
+        cprintf("mmap: kalloc failed\n");
+        return -1;
+      }
+      memset(mem, 0, PGSIZE);
+      if (mappages(curproc->pgdir, (void*)a, PGSIZE, V2P(mem) | prot) < 0) {
+        cprintf("mmap: mappages failed\n");
+        kfree(mem);
+        return -1;
+      }
+      addr_offset += PGSIZE;
+    }
+  } else {
+    // File-backed mapping
+    struct file *f;
+    if (fd < 0 || (f = curproc->ofile[fd]) == 0) {
+      cprintf("mmap: Invalid file descriptor\n");
+      return -1;
+    }
+    
+    // TODO: Implement file-backed mapping using the file 'f' and 'offset'.
+  }
 
-  //   struct vm_area curr_vma = p->head;
-
-  //   // iterate over allocated VMAs
-  //   while (curr_vma.start != MAX_ADDR)
-  //   {
-  //     // if provided address falls within the allocated VMA
-  //     if (arg_addr >= curr_vma.start && arg_addr <= curr_vma.end)
-  //     {
-  //       return -1;
-  //     }
-
-  //     // if the requested mapping is before the next VMA
-  //     if(arg_addr < curr_vma.next->start){
-  //       // check the space after it
-  //       if(curr_vma.space_after > length) {
-  //         // we found enough space
-  //         start_addr = arg_addr;
-  //         curr_vma.space_after -= length;
-  //         create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
-
-  //         // allocate physical space and insert it into the page table
-  //         char *pa = kalloc();
-  //         if(pa == 0) {
-  //           panic("kalloc");
-  //         }
-  //         int num_pages = length/PGSIZE;
-  //         memset(pa, 0, num_pages*PGSIZE);
-
-  //         if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
-  //           kfree(pa);
-  //           p->killed = 1;
-  //         }
-
-  //         // ??
-  //         // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
-
-  //         return start_addr;
-  //       }
-  //     }
-  //     curr_vma = *curr_vma.next;
-  //   }
-
-  //   // we couldn't find any space, error out
-  //   return -1;
-  // }
-  // cprintf("NO MAP_FIXED\n");
-  // // MAP_FIXED not set, we have to find an address
-  // struct vm_area curr_vma = p->head;
-
-  // // iterate over allocated VMAs
-  // while (curr_vma.start != MAX_ADDR)
-  // {
-  //   // check the space after it - request encroaching on next VMA is covered because the
-  //   // starting address is not arbitrary
-  //   if(curr_vma.space_after > length) {
-  //     // we found enough space
-  //     start_addr = curr_vma.end+1;
-  //     curr_vma.space_after -= length;
-  //     create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
-
-  //     // allocate physical space and insert it into the page table
-  //     char *pa = kalloc();
-  //     if(pa == 0) {
-  //       panic("kalloc");
-  //     }
-  //     int num_pages = length/PGSIZE;
-  //     memset(pa, 0, num_pages*PGSIZE);
-
-  //     if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
-  //       kfree(pa);
-  //       p->killed = 1;
-  //     }
-      
-  //     // ??
-  //     // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
-
-  //     return start_addr;
-  //   }
-  //   curr_vma = *curr_vma.next;
-  // }
-
-  // we couldn't find any space, error out
-  return -1;
+  return (int)(start + addr_offset);
 }
+
 
 int sys_munmap(void)
 {

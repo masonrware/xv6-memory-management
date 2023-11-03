@@ -481,10 +481,14 @@ void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len,
   prev->next = vma;
 }
 
-// TODO implement below to read a file into user space
-int mmap_read(struct file *f, uint va, int offset, int size) {
-  return 0;
-}
+int mmap_read(struct file *f, uint va, int off, int size) {
+  ilock(f->ip);
+  // read to user space VA.
+  int n = readi(f->ip, va, off, size);
+  off+=n;
+  iunlock(f->ip);
+  return off;
+} 
 
 /*
 * COPIED CODE FROM VM.C
@@ -608,7 +612,8 @@ int sys_mmap(void)
           }
 
           // ??
-          // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
+          int num_pages = length/PGSIZE;
+          mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
 
           return 0;
         }
@@ -647,8 +652,9 @@ int sys_mmap(void)
       }
       
       // ??
-      // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
-
+      int num_pages = length/PGSIZE;
+      mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
+      
       return 0;
     }
     curr_vma = *curr_vma.next;

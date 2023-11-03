@@ -550,7 +550,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 int sys_mmap(void)
 {
-  uint addr = 0;
+  int addr = 0;
   int length;
   int prot;
   int flags;

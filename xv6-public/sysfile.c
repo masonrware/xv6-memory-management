@@ -475,9 +475,9 @@ void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len,
   vma->flags = flags;
   vma->fd = fd;
   vma->space_after = next->start - vma->end;
-  // vma->f = f;
-  vma->next = next;
+  vma->f  = myproc()->ofile[fd];
 
+  vma->next = next;
   prev->next = vma;
 }
 
@@ -550,16 +550,15 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 int sys_mmap(void)
 {
-  void *addr = 0;
+  uint addr = 0;
   int length;
   int prot;
   int flags;
   int fd;
   int offset;
-  // struct file *f;
 
   // invalid arg check
-  if (argptr(0, (char**)&addr, sizeof(void*)) < 0 ||
+  if (argint(0, &addr) < 0 ||
         argint(1, &length) < 0 ||
         argint(2, &prot) < 0 ||
         argint(3, &flags) < 0 ||

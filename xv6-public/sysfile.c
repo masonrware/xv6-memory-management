@@ -484,7 +484,7 @@ void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len,
 int mmap_read(struct file *f, uint va, int off, int size) {
   ilock(f->ip);
   // read to user space VA.
-  int n = readi(f->ip, va, off, size);
+  int n = readi(f->ip, (void *)va, off, size);
   off+=n;
   iunlock(f->ip);
   return off;

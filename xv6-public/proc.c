@@ -218,17 +218,17 @@ fork(void)
   // TODO check for MAP_PRIVATE vs. MAP_SHARED
   struct vm_area curr_vma = curproc->head;
   while(curr_vma.start != MAX_ADDR) {
-  //   struct vm_area *src = 0;
-  //   src = &curr_vma;
-  //   // find an available vma from the child
-  //   struct vm_area *dst = 0;
+    struct vm_area *src = 0;
+    src = &curr_vma;
+    // find an available vma from the child
+    struct vm_area *dst = 0;
     
-  //   struct vm_area curr_child_vma = np->head;
-  //   while(curr_child_vma.start != MAX_ADDR) {
+    struct vm_area curr_child_vma = np->head;
+    while(curr_child_vma.start != MAX_ADDR) {
   //     // TODO: what to do here?
   //     // break;
-  //     curr_child_vma = *curr_child_vma.next;
-  //   }
+      curr_child_vma = *curr_child_vma.next;
+    }
 
   //   if(dst) {
   //     copy_vma(dst, src);

@@ -559,7 +559,7 @@ int sys_mmap(void)
   struct file *f;
 
   // invalid arg check
-  if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
+  if (argint(0, (int*)&addr) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
     return -1;
 
   struct proc *p = myproc();
@@ -569,7 +569,7 @@ int sys_mmap(void)
   uint arg_addr = (uint) addr;
 
   // We must use the provided address
-  if ((flags & MAP_FIXED) != 0)
+  if (flags & MAP_FIXED)
   {
     // if the address provided is not page-addressable or out of bounds
     if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
@@ -610,9 +610,12 @@ int sys_mmap(void)
             p->killed = 1;
           }
 
-          // ??
-          int num_pages = length/PGSIZE;
-          mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
+          // load file into physical memory
+          if(~(flags & MAP_ANONYMOUS)) {
+            // ??
+            int num_pages = length/PGSIZE;
+            mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
+          }
 
           return 0;
         }
@@ -650,10 +653,13 @@ int sys_mmap(void)
         p->killed = 1;
       }
       
-      // ??
-      int num_pages = length/PGSIZE;
-      mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
-      
+      // load file into physical memory
+      if(~(flags & MAP_ANONYMOUS)) {
+        // ??
+        int num_pages = length/PGSIZE;
+        mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
+      }
+
       return 0;
     }
     curr_vma = *curr_vma.next;

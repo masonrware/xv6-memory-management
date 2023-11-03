@@ -550,7 +550,6 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 int sys_mmap(void)
 {
-  // void *addr, int length, int prot, int flags, int fd, int offset
   void *addr;
   int length;
   int prot;
@@ -606,7 +605,7 @@ int sys_mmap(void)
           int num_pages = length/PGSIZE;
           memset(pa, 0, num_pages*PGSIZE);
 
-          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
+          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot | PTE_U )!=0){
             kfree(pa);
             p->killed = 1;
           }
@@ -646,7 +645,7 @@ int sys_mmap(void)
       int num_pages = length/PGSIZE;
       memset(pa, 0, num_pages*PGSIZE);
 
-      if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
+      if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot | PTE_U)!=0){
         kfree(pa);
         p->killed = 1;
       }

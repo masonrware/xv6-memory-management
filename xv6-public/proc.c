@@ -203,6 +203,9 @@ fork(void)
     return -1;
   }
 
+  // Copy mappings down to child.
+  // TODO check for MAP_PRIVATE vs. MAP_SHARED
+
   // Copy process state from proc.
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
@@ -213,10 +216,6 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-
-  // Copy mappings down to child.
-  // TODO check for MAP_PRIVATE vs. MAP_SHARED
-  // copyuvm()
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;

@@ -627,7 +627,30 @@ int sys_mmap(void)
           // we found enough space
           start_addr = arg_addr;
           curr_vma.space_after -= length;
-          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
+          
+          struct vm_area *vma = 0;
+
+          vma->valid = 1;
+          cprintf("====\nValid: %d\n", vma->valid);
+          vma->start = start_addr;
+          cprintf("Start Addr: %d\n", vma->start);
+          vma->end = PGROUNDUP(start_addr + length) - 1;
+          cprintf("End Addr: %d\n", vma->end);
+          vma->len = length;
+          cprintf("Length: %d\n", vma->len);
+          vma->prot = prot;
+          cprintf("Protections: %d\n", vma->prot);
+          vma->flags = flags;
+          cprintf("Flags: %d\n", vma->flags);
+          vma->fd = fd;
+          cprintf("File Descriptor: %d\n", vma->fd);
+          vma->space_after = curr_vma.next->start - vma->end;
+          cprintf("Space After: %d\n", vma->space_after);
+          vma->f = myproc()->ofile[fd];
+          cprintf("added file\n===\n", vma->f);
+
+          vma->next = curr_vma.next;
+          curr_vma.next = vma;
 
           cprintf("CREATED NEW VMA\n");
 

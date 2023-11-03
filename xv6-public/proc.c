@@ -225,15 +225,16 @@ fork(void)
     
     struct vm_area curr_child_vma = np->head;
     while(curr_child_vma.start != MAX_ADDR) {
+      dst = &curr_child_vma;
   //     // TODO: what to do here?
   //     // break;
       curr_child_vma = *curr_child_vma.next;
     }
 
-  //   if(dst) {
-  //     copy_vma(dst, src);
+    if(dst) {
+      copy_vma(dst, src);
   //     dst->f = np->ofile[dst->fd];
-  //   }
+    }
 
     curr_vma = *curr_vma.next;
   }

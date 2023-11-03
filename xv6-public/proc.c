@@ -216,8 +216,8 @@ fork(void)
 
   // Copy mappings down to child.
   // TODO check for MAP_PRIVATE vs. MAP_SHARED
-  // struct vm_area curr_vma = curproc->head;
-  // while(curr_vma.start != MAX_ADDR) {
+  struct vm_area curr_vma = curproc->head;
+  while(curr_vma.start != MAX_ADDR) {
   //   struct vm_area *src = 0;
   //   src = &curr_vma;
   //   // find an available vma from the child
@@ -235,8 +235,8 @@ fork(void)
   //     dst->f = np->ofile[dst->fd];
   //   }
 
-  //   curr_vma = *curr_vma.next;
-  // }
+    curr_vma = *curr_vma.next;
+  }
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;

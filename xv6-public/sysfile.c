@@ -626,9 +626,12 @@ int sys_mmap(void)
           cprintf("FOUND ENOUGH SPACE\n");
           // we found enough space
           start_addr = arg_addr;
+          cprintf("629\n");
           curr_vma.space_after -= length;
-          
+          cprintf("631\n");
+
           struct vm_area *vma = 0;
+          cprintf("634\n");
 
           vma->valid = 1;
           cprintf("====\nValid: %d\n", vma->valid);

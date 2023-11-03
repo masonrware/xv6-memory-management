@@ -463,7 +463,7 @@ int sys_pipe(void)
  * P5 SYSCALL CODE
  */
 
-void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd, struct file *f)
+void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
 {
   struct vm_area *vma = 0;
 
@@ -475,7 +475,7 @@ void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len,
   vma->flags = flags;
   vma->fd = fd;
   vma->space_after = next->start - vma->end;
-  vma->f = f;
+  // vma->f = f;
   vma->next = next;
 
   prev->next = vma;
@@ -604,7 +604,7 @@ int sys_mmap(void)
           // we found enough space
           start_addr = arg_addr;
           curr_vma.space_after -= length;
-          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
+          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
 
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
@@ -647,7 +647,7 @@ int sys_mmap(void)
       // we found enough space
       start_addr = curr_vma.end+1;
       curr_vma.space_after -= length;
-      create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
+      create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
 
       // allocate physical space and insert it into the page table
       char *pa = kalloc();

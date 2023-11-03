@@ -15,7 +15,9 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+
 #include "mmap.h"
+#include "memlayout.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -479,6 +481,69 @@ void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len,
   prev->next = vma;
 }
 
+// TODO implement below to read a file into user space
+int mmap_read(struct file *f, uint va, int offset, int size) {
+  return 0;
+}
+
+/*
+* COPIED CODE FROM VM.C
+*/
+
+// Return the address of the PTE in page table pgdir
+// that corresponds to virtual address va.  If alloc!=0,
+// create any required page table pages.
+static pte_t *
+walkpgdir(pde_t *pgdir, const void *va, int alloc)
+{
+  pde_t *pde;
+  pte_t *pgtab;
+
+  pde = &pgdir[PDX(va)];
+  if(*pde & PTE_P){
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+  } else {
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+      return 0;
+    // Make sure all those PTE_P bits are zero.
+    memset(pgtab, 0, PGSIZE);
+    // The permissions here are overly generous, but they can
+    // be further restricted by the permissions in the page table
+    // entries, if necessary.
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+  }
+  return &pgtab[PTX(va)];
+}
+
+// Create PTEs for virtual addresses starting at va that refer to
+// physical addresses starting at pa. va and size might not
+// be page-aligned.
+static int
+mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+{
+  char *a, *last;
+  pte_t *pte;
+
+  a = (char*)PGROUNDDOWN((uint)va);
+  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+  for(;;){
+    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+      return -1;
+    if(*pte & PTE_P)
+      panic("remap");
+    *pte = pa | perm | PTE_P;
+    if(a == last)
+      break;
+    a += PGSIZE;
+    pa += PGSIZE;
+  }
+  return 0;
+}
+
+/*
+* END COPIED CODE FROM VM.C
+*/
+
 int sys_mmap(void)
 {
   // void *addr, int length, int prot, int flags, int fd, int offset
@@ -491,7 +556,7 @@ int sys_mmap(void)
   struct file *f;
 
   // invalid arg check
-  if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
+  if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
     return -1;
 
   struct proc *p = myproc();
@@ -501,7 +566,7 @@ int sys_mmap(void)
   uint arg_addr = (uint) addr;
 
   // We must use the provided address
-  if (flags & MAP_FIXED != 0)
+  if ((flags & MAP_FIXED) != 0)
   {
     // if the address provided is not page-addressable or out of bounds
     if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
@@ -527,7 +592,24 @@ int sys_mmap(void)
           // we found enough space
           start_addr = arg_addr;
           curr_vma.space_after -= length;
-          create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
+
+          // allocate physical space and insert it into the page table
+          char *pa = kalloc();
+          if(pa == 0) {
+            panic("kalloc");
+          }
+          int num_pages = length/PGSIZE;
+          memset(pa, 0, num_pages*PGSIZE);
+
+          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
+            kfree(pa);
+            p->killed = 1;
+          }
+
+          // ??
+          // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
+
           return 0;
         }
       }
@@ -549,7 +631,24 @@ int sys_mmap(void)
       // we found enough space
       start_addr = curr_vma.end+1;
       curr_vma.space_after -= length;
-      create_vma(&curr_vma, &curr_vma.next, start_addr, length, prot, flags, fd, f);
+      create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
+
+      // allocate physical space and insert it into the page table
+      char *pa = kalloc();
+      if(pa == 0) {
+        panic("kalloc");
+      }
+      int num_pages = length/PGSIZE;
+      memset(pa, 0, num_pages*PGSIZE);
+
+      if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot)!=0){
+        kfree(pa);
+        p->killed = 1;
+      }
+      
+      // ??
+      // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
+
       return 0;
     }
     curr_vma = *curr_vma.next;
@@ -569,7 +668,7 @@ int sys_munmap(void)
   struct vm_area *vm = 0;
 
   // invalid arg check
-  if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
+  if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
     return -1;
 
   arg_addr = (uint)addr;

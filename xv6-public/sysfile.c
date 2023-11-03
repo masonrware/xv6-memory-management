@@ -463,31 +463,41 @@ int sys_pipe(void)
  * P5 SYSCALL CODE
  */
 
-void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
+struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
 {
   struct vm_area *vma = 0;
+  struct vm_area *curr_vma = &prev;
+  while(curr_vma->next->start!=MIN_ADDR) {
+    if(curr_vma->valid == 0) {
+      vma = &prev;
+      break;
+    }
+    curr_vma = prev->next;
+  }
+  if(vma) {
+    vma->valid = 1;
+    cprintf("====\nValid: %d\n", vma->valid);
+    vma->start = start;
+    cprintf("Start Addr: %d\n", vma->start);
+    vma->end = PGROUNDUP(start + len) - 1;
+    cprintf("End Addr: %d\n", vma->end);
+    vma->len = vma->end - start;
+    cprintf("Length: %d\n", vma->len);
+    vma->prot = prot;
+    cprintf("Protections: %d\n", vma->prot);
+    vma->flags = flags;
+    cprintf("Flags: %d\n", vma->flags);
+    vma->fd = fd;
+    cprintf("File Descriptor: %d\n", vma->fd);
+    vma->space_after = next->start - vma->end;
+    cprintf("Space After: %d\n", vma->space_after);
+    vma->f = myproc()->ofile[fd];
+    cprintf("added file\n===\n", vma->f);
 
-  vma->valid = 1;
-  cprintf("====\nValid: %d\n", vma->valid);
-  vma->start = start;
-  cprintf("Start Addr: %d\n", vma->start);
-  vma->end = PGROUNDUP(start + len) - 1;
-  cprintf("End Addr: %d\n", vma->end);
-  vma->len = vma->end - start;
-  cprintf("Length: %d\n", vma->len);
-  vma->prot = prot;
-  cprintf("Protections: %d\n", vma->prot);
-  vma->flags = flags;
-  cprintf("Flags: %d\n", vma->flags);
-  vma->fd = fd;
-  cprintf("File Descriptor: %d\n", vma->fd);
-  vma->space_after = next->start - vma->end;
-  cprintf("Space After: %d\n", vma->space_after);
-  vma->f = myproc()->ofile[fd];
-  cprintf("added file\n===\n", vma->f);
-
-  vma->next = next;
-  prev->next = vma;
+    vma->next = next;
+    prev->next = vma;
+  }
+  return vma;
 }
 
 int mmap_read(struct file *f, uint va, int off, int size)
@@ -633,27 +643,7 @@ int sys_mmap(void)
           struct vm_area *vma = 0;
           cprintf("634\n");
 
-          vma->valid = 1;
-          cprintf("====\nValid: %d\n", vma->valid);
-          vma->start = start_addr;
-          cprintf("Start Addr: %d\n", vma->start);
-          vma->end = PGROUNDUP(start_addr + length) - 1;
-          cprintf("End Addr: %d\n", vma->end);
-          vma->len = length;
-          cprintf("Length: %d\n", vma->len);
-          vma->prot = prot;
-          cprintf("Protections: %d\n", vma->prot);
-          vma->flags = flags;
-          cprintf("Flags: %d\n", vma->flags);
-          vma->fd = fd;
-          cprintf("File Descriptor: %d\n", vma->fd);
-          vma->space_after = curr_vma.next->start - vma->end;
-          cprintf("Space After: %d\n", vma->space_after);
-          vma->f = myproc()->ofile[fd];
-          cprintf("added file\n===\n", vma->f);
-
-          vma->next = curr_vma.next;
-          curr_vma.next = vma;
+          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
 
           cprintf("CREATED NEW VMA\n");
 

@@ -550,7 +550,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 int sys_mmap(void)
 {
-  void *addr;
+  void *addr = 0;
   int length;
   int prot;
   int flags;
@@ -559,7 +559,7 @@ int sys_mmap(void)
   // struct file *f;
 
   // invalid arg check
-  if (argptr(0, (void*)&addr, sizeof(void*)) < 0 ||
+  if (argptr(0, (char**)&addr, sizeof(void*)) < 0 ||
         argint(1, &length) < 0 ||
         argint(2, &prot) < 0 ||
         argint(3, &flags) < 0 ||
@@ -568,9 +568,10 @@ int sys_mmap(void)
     {
     cprintf("ARG ERR\n");
     return -1;
-  } else {
-    cprintf("%d, %d, %d, %d, %d, %d\n", (uint)addr, length, prot, flags, fd, offset);
   }
+   
+  cprintf("addr: %d, len: %d, prot: %d, flags: %d, fd: %d, offset: %d\n", (uint)addr, length, prot, flags, fd, offset);
+
   struct proc *p = myproc();
 
   uint start_addr = 0;
@@ -580,9 +581,11 @@ int sys_mmap(void)
   // We must use the provided address
   if (flags & MAP_FIXED)
   {
+    cprintf("YES MAP_FIXED\n");
     // if the address provided is not page-addressable or out of bounds
     if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
     {
+      cprintf("ADDR ERR\n");
       return -1;
     }
 
@@ -626,7 +629,7 @@ int sys_mmap(void)
             mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
           }
 
-          return 0;
+          return start_addr;
         }
       }
       curr_vma = *curr_vma.next;
@@ -635,6 +638,7 @@ int sys_mmap(void)
     // we couldn't find any space, error out
     return -1;
   }
+  cprintf("NOT MAP_FIXED\n");
   // MAP_FIXED not set, we have to find an address
   struct vm_area curr_vma = p->head;
 
@@ -669,7 +673,7 @@ int sys_mmap(void)
         mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
       }
 
-      return 0;
+      return start_addr;
     }
     curr_vma = *curr_vma.next;
   }

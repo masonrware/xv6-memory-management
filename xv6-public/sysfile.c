@@ -599,22 +599,28 @@ int sys_mmap(void)
     // iterate over allocated VMAs
     while (curr_vma.start != MAX_ADDR)
     {
+      cprintf("searching allocated VMAs\n");
       // if provided address falls within the allocated VMA
       if (arg_addr >= curr_vma.start && arg_addr <= curr_vma.end)
       {
+        cprintf("ALREADY ALLOCATED\n");
         return -1;
       }
 
       // if the requested mapping is before the next VMA
       if (arg_addr < curr_vma.next->start)
       {
+        cprintf("POTENTIAL SPACE\n");
         // check the space after it
         if (curr_vma.space_after > length)
         {
+          cprintf("FOUND ENOUGH SPACE\n");
           // we found enough space
           start_addr = arg_addr;
           curr_vma.space_after -= length;
           create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
+
+          cprintf("CREATED NEW VMA\n");
 
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
@@ -625,11 +631,15 @@ int sys_mmap(void)
           int num_pages = length / PGSIZE;
           memset(pa, 0, num_pages * PGSIZE);
 
+          cprintf("ALLOCATED PHYISCAL SPACE\n");
+
           if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma.prot | PTE_U) != 0)
           {
             kfree(pa);
             p->killed = 1;
           }
+
+          cprintf("MAPPED PHYSICAL SPACE IN PTABLE\n");
 
           // load file into physical memory
           if (~(flags & MAP_ANONYMOUS))
@@ -637,6 +647,7 @@ int sys_mmap(void)
             // ??
             int num_pages = length / PGSIZE;
             mmap_read(curr_vma.f, start_addr, length, num_pages * PGSIZE);
+            cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
           }
 
           return start_addr;

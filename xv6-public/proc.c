@@ -203,9 +203,6 @@ fork(void)
     return -1;
   }
 
-  // Copy mappings down to child.
-  // TODO check for MAP_PRIVATE vs. MAP_SHARED
-
   // Copy process state from proc.
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
@@ -226,6 +223,9 @@ fork(void)
   np->cwd = idup(curproc->cwd);
 
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  // Copy mappings down to child.
+  // TODO check for MAP_PRIVATE vs. MAP_SHARED
 
   pid = np->pid;
 

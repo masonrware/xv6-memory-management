@@ -469,30 +469,32 @@ void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len,
 
   vma->valid = 1;
   vma->start = start;
-  vma->end = PGROUNDUP(start+len)-1;
+  vma->end = PGROUNDUP(start + len) - 1;
   vma->len = vma->end - start;
   vma->prot = prot;
   vma->flags = flags;
   vma->fd = fd;
   vma->space_after = next->start - vma->end;
-  vma->f  = myproc()->ofile[fd];
+  vma->f = myproc()->ofile[fd];
 
   vma->next = next;
   prev->next = vma;
 }
 
-int mmap_read(struct file *f, uint va, int off, int size) {
+int mmap_read(struct file *f, uint va, int off, int size)
+{
   ilock(f->ip);
   // read to user space VA.
+  // TODO replace with filread()
   int n = readi(f->ip, (void *)va, off, size);
-  off+=n;
+  off += n;
   iunlock(f->ip);
   return off;
-} 
+}
 
 /*
-* COPIED CODE FROM VM.C
-*/
+ * COPIED CODE FROM VM.C
+ */
 
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
@@ -504,10 +506,13 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   pte_t *pgtab;
 
   pde = &pgdir[PDX(va)];
-  if(*pde & PTE_P){
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-  } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+  if (*pde & PTE_P)
+  {
+    pgtab = (pte_t *)P2V(PTE_ADDR(*pde));
+  }
+  else
+  {
+    if (!alloc || (pgtab = (pte_t *)kalloc()) == 0)
       return 0;
     // Make sure all those PTE_P bits are zero.
     memset(pgtab, 0, PGSIZE);
@@ -528,15 +533,16 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   char *a, *last;
   pte_t *pte;
 
-  a = (char*)PGROUNDDOWN((uint)va);
-  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
-  for(;;){
-    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+  a = (char *)PGROUNDDOWN((uint)va);
+  last = (char *)PGROUNDDOWN(((uint)va) + size - 1);
+  for (;;)
+  {
+    if ((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
-    if(*pte & PTE_P)
+    if (*pte & PTE_P)
       panic("remap");
     *pte = pa | perm | PTE_P;
-    if(a == last)
+    if (a == last)
       break;
     a += PGSIZE;
     pa += PGSIZE;
@@ -545,12 +551,12 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 }
 
 /*
-* END COPIED CODE FROM VM.C
-*/
+ * END COPIED CODE FROM VM.C
+ */
 
 int sys_mmap(void)
 {
-  int addr = 0;
+  int addr;
   int length;
   int prot;
   int flags;
@@ -559,23 +565,23 @@ int sys_mmap(void)
 
   // invalid arg check
   if (argint(0, &addr) < 0 ||
-        argint(1, &length) < 0 ||
-        argint(2, &prot) < 0 ||
-        argint(3, &flags) < 0 ||
-        argint(4, &fd) < 0 ||
-        argint(5, &offset) < 0)
-    {
+      argint(1, &length) < 0 ||
+      argint(2, &prot) < 0 ||
+      argint(3, &flags) < 0 ||
+      argint(4, &fd) < 0 ||
+      argint(5, &offset) < 0)
+  {
     cprintf("ARG ERR\n");
     return -1;
   }
-   
+
   cprintf("addr: %d, len: %d, prot: %d, flags: %d, fd: %d, offset: %d\n", (uint)addr, length, prot, flags, fd, offset);
 
   struct proc *p = myproc();
 
   uint start_addr = 0;
   // cast param to uint
-  uint arg_addr = (uint) addr;
+  uint arg_addr = (uint)addr;
 
   // We must use the provided address
   if (flags & MAP_FIXED)
@@ -600,9 +606,11 @@ int sys_mmap(void)
       }
 
       // if the requested mapping is before the next VMA
-      if(arg_addr < curr_vma.next->start){
+      if (arg_addr < curr_vma.next->start)
+      {
         // check the space after it
-        if(curr_vma.space_after > length) {
+        if (curr_vma.space_after > length)
+        {
           // we found enough space
           start_addr = arg_addr;
           curr_vma.space_after -= length;
@@ -610,22 +618,25 @@ int sys_mmap(void)
 
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
-          if(pa == 0) {
+          if (pa == 0)
+          {
             panic("kalloc");
           }
-          int num_pages = length/PGSIZE;
-          memset(pa, 0, num_pages*PGSIZE);
+          int num_pages = length / PGSIZE;
+          memset(pa, 0, num_pages * PGSIZE);
 
-          if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot | PTE_U )!=0){
+          if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma.prot | PTE_U) != 0)
+          {
             kfree(pa);
             p->killed = 1;
           }
 
           // load file into physical memory
-          if(~(flags & MAP_ANONYMOUS)) {
+          if (~(flags & MAP_ANONYMOUS))
+          {
             // ??
-            int num_pages = length/PGSIZE;
-            mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
+            int num_pages = length / PGSIZE;
+            mmap_read(curr_vma.f, start_addr, length, num_pages * PGSIZE);
           }
 
           return start_addr;
@@ -646,30 +657,34 @@ int sys_mmap(void)
   {
     // check the space after it - request encroaching on next VMA is covered because the
     // starting address is not arbitrary
-    if(curr_vma.space_after > length) {
+    if (curr_vma.space_after > length)
+    {
       // we found enough space
-      start_addr = curr_vma.end+1;
+      start_addr = curr_vma.end + 1;
       curr_vma.space_after -= length;
       create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
 
       // allocate physical space and insert it into the page table
       char *pa = kalloc();
-      if(pa == 0) {
+      if (pa == 0)
+      {
         panic("kalloc");
       }
-      int num_pages = length/PGSIZE;
-      memset(pa, 0, num_pages*PGSIZE);
+      int num_pages = length / PGSIZE;
+      memset(pa, 0, num_pages * PGSIZE);
 
-      if(mappages(p->pgdir, (void *) start_addr, length, (uint) pa, curr_vma.prot | PTE_U)!=0){
+      if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma.prot | PTE_U) != 0)
+      {
         kfree(pa);
         p->killed = 1;
       }
-      
+
       // load file into physical memory
-      if(~(flags & MAP_ANONYMOUS)) {
+      if (~(flags & MAP_ANONYMOUS))
+      {
         // ??
-        int num_pages = length/PGSIZE;
-        mmap_read(curr_vma.f, start_addr, length, num_pages*PGSIZE);
+        int num_pages = length / PGSIZE;
+        mmap_read(curr_vma.f, start_addr, length, num_pages * PGSIZE);
       }
 
       return start_addr;

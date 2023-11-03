@@ -1,26 +1,29 @@
 #include "types.h"
-#include "stat.h"
 #include "user.h"
+#include "stat.h"
 #include "mmap.h"
 
-int
-main(int argc, char **argv)
-{
-  uint va = 0x65000000;
-  int length = 1024;
-  int prot = PROT_READ;
-  int flags = MAP_FIXED | MAP_SHARED;
-  int fd = 0;
-  int offset = 0;
+int main() {
+    uint addr = 0x60020000;
+    int len = 4000;
+    int prot = PROT_READ | PROT_WRITE;
+    int flags = MAP_ANON | MAP_FIXED | MAP_SHARED;
+    int fd = -1;
 
+    /* mmap anon memory */
+    void *mem = mmap((void *)addr, len, prot, flags, fd, 0);
+    if (mem == (void *)-1) {
+        goto failed;
+    }
+    if (mem != (void *)addr) {
+        goto failed;
+    }
 
-  mmap(va, length, prot, flags, fd, offset);
+// success:
+    printf(1, "MMAP\t SUCCESS\n");
+    exit();
 
-  printf(1, "[0] mapped successfully\n");
-
-  munmap(va, length);
-
-  printf(1, "[1] unmapped successfully\n");
-
-  exit();
+failed:
+    printf(1, "MMAP\t FAILED\n");
+    exit();
 }

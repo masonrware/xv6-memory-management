@@ -463,7 +463,7 @@ int sys_pipe(void)
  * P5 SYSCALL CODE
  */
 
-void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd, struct file *f)
+void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
 {
   struct vm_area *vma = 0;
 
@@ -475,7 +475,7 @@ void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len,
   vma->flags = flags;
   vma->fd = fd;
   vma->space_after = next->start - vma->end;
-  vma->f = f;
+  vma->f = myproc()->ofile[fd];
   vma->next = next;
 
   prev->next = vma;
@@ -553,11 +553,17 @@ int sys_mmap(void)
   int flags;
   int fd;
   int offset;
-  struct file *f;
+  // NOT provided by the user
+  // struct file *f;
 
   // invalid arg check
-  if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0)
+  // if (argptr(0, (void *)&addr, sizeof(uint)) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argptr(4, (void *)&fd, sizeof(int)) < 0 || argint(5, &offset) < 0)
+  if(argptr(0, (void *) &addr, sizeof(uint)) < 0) {
+    cprintf("err\n");
     return -1;
+  }
+  cprintf("%d\n", (uint) addr);
+  // cprintf("%d, %d, %d, %d, %d\n", length, prot, flags, fd, offset);
 
   struct proc *p = myproc();
 
@@ -568,6 +574,7 @@ int sys_mmap(void)
   // We must use the provided address
   if ((flags & MAP_FIXED) != 0)
   {
+    cprintf("MAP_FIXED\n");
     // if the address provided is not page-addressable or out of bounds
     if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
     {
@@ -592,7 +599,7 @@ int sys_mmap(void)
           // we found enough space
           start_addr = arg_addr;
           curr_vma.space_after -= length;
-          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
+          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
 
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
@@ -610,7 +617,7 @@ int sys_mmap(void)
           // ??
           // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
 
-          return 0;
+          return start_addr;
         }
       }
       curr_vma = *curr_vma.next;
@@ -619,6 +626,7 @@ int sys_mmap(void)
     // we couldn't find any space, error out
     return -1;
   }
+  cprintf("NO MAP_FIXED\n");
   // MAP_FIXED not set, we have to find an address
   struct vm_area curr_vma = p->head;
 
@@ -631,7 +639,7 @@ int sys_mmap(void)
       // we found enough space
       start_addr = curr_vma.end+1;
       curr_vma.space_after -= length;
-      create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd, f);
+      create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
 
       // allocate physical space and insert it into the page table
       char *pa = kalloc();
@@ -649,7 +657,7 @@ int sys_mmap(void)
       // ??
       // mmap_read(vm->file, fault_addr_head, distance, PGSIZE)
 
-      return 0;
+      return start_addr;
     }
     curr_vma = *curr_vma.next;
   }
@@ -668,7 +676,7 @@ int sys_munmap(void)
   struct vm_area *vm = 0;
 
   // invalid arg check
-  if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
+  if (argptr(0, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
     return -1;
 
   arg_addr = (uint)addr;

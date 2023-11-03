@@ -466,10 +466,10 @@ int sys_pipe(void)
 struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
 {
   struct vm_area *vma = 0;
-  struct vm_area *curr_vma = &prev;
+  struct vm_area *curr_vma = prev;
   while(curr_vma->next->start!=MIN_ADDR) {
     if(curr_vma->valid == 0) {
-      vma = &prev;
+      vma = prev;
       break;
     }
     curr_vma = prev->next;
@@ -639,10 +639,6 @@ int sys_mmap(void)
           cprintf("629\n");
           curr_vma.space_after -= length;
           cprintf("631\n");
-
-          struct vm_area *vma = 0;
-          cprintf("634\n");
-
           create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
 
           cprintf("CREATED NEW VMA\n");

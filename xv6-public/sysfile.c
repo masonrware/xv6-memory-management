@@ -460,7 +460,7 @@ int sys_pipe(void)
 }
 
 /*
- * P5 SYSCALL CODE
+ * P5 CODE
  */
 
 void create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
@@ -546,7 +546,6 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 int sys_mmap(void)
 {
-  // void *addr, int length, int prot, int flags, int fd, int offset
   void *addr;
   int length;
   int prot;
@@ -727,3 +726,7 @@ int sys_munmap(void)
   }
   return 0;
 }
+
+/*
+* END P5 CODE
+*/

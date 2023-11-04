@@ -297,6 +297,17 @@ fork(void)
     } 
     // if it is MAP_PRIVATE, reallocate the mappings
     else if (curr_vma->flags & MAP_PRIVATE) {
+      // reallocate
+      char *pa = kalloc();
+      if (pa == 0)
+      {
+        panic("kalloc");
+      }
+      int num_pages = curr_vma->len / PGSIZE;
+      memset(pa, 0, num_pages * PGSIZE);
+
+      curr_vma->pa = *pa;
+
       if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
         kfree((void *) curr_vma->pa);
         np->killed = 1;

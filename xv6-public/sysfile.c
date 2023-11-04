@@ -665,13 +665,10 @@ int sys_mmap(void)
           cprintf("MAPPED PHYSICAL SPACE IN PTABLE\n");
 
           // load file into physical memory
-          if (~(flags & MAP_ANON))
+          if ((flags & MAP_ANON)==0)
           {
-            // ??
-            // int num_pages = length / PGSIZE;
             // TODO replace this with fileread()....
             fileread(p->ofile[fd], (void *) start_addr, length);
-            // mmap_read(curr_vma->f, start_addr, length, num_pages * PGSIZE);
             cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
           }
 
@@ -718,12 +715,9 @@ int sys_mmap(void)
       }
 
       // load file into physical memory
-      if (~(flags & MAP_ANON))
+      if ((flags & MAP_ANON)!=0)
       {
-        // ??
-        // int num_pages = length / PGSIZE;
         fileread(p->ofile[fd], (void *) start_addr, length);
-        // mmap_read(curr_vma->f, start_addr, length, num_pages * PGSIZE);
         cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
       }
 

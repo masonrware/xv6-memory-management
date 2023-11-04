@@ -724,7 +724,7 @@ int sys_munmap(void)
   // iterate through VMAs to find VM to free
   while (curr.start != MAX_ADDR)
   {
-    if (arg_addr == curr.start)
+    if (arg_addr == curr.start && curr.valid == 1)
     {
       vm = &curr;
       break;
@@ -763,7 +763,7 @@ int sys_munmap(void)
   // remove entire mapping block: | A | A | A | ->  |   |   |   |
   if (arg_addr == vm->start)
   {
-    vm->valid = 1;                // make mem block available
+    vm->valid = 0;                // make mem block available
     prev->next = vm->next;        // link previous block to next block after curr (unlink curr)
     prev->space_after += vm->len; // add space from unlinked block to space avail. after previous block
   }

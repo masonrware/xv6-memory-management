@@ -94,9 +94,9 @@ exec(char *path, char **argv)
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
   // INITIALIZE PROC HEAD/TAIL
-  curproc->head.valid = 1;
+  curproc->head.valid = 0;
   curproc->head.start = 0x60000000;
-  curproc->head.end = 0x60000000;
+  curproc->head.end = 0x5FFFFFFF;
   curproc->head.len = 0;
   curproc->head.space_after = 0x20000000; // subtract 1?
   curproc->tail.valid = 0;

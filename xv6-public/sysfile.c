@@ -603,17 +603,14 @@ int sys_mmap(void)
       // if the requested mapping is before the next VMA
       if (arg_addr < curr_vma->next->start)
       {
-        cprintf("found vma space for new request\n");
         // check the space after it
         if (curr_vma->space_after > length)
         {
-          cprintf("there is enough space for it\n");
           // we found enough space
           start_addr = arg_addr;
           curr_vma->space_after -= length;
           struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 			
-          cprintf("created new vma\n");
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
           if (pa == 0)
@@ -636,7 +633,6 @@ int sys_mmap(void)
           {
             // TODO probably some error here I will need to fix
             // TODO check error status of this fileread
-			cprintf("fileread\n");
             fileread(new_vma->f, (void *) start_addr, length);
             // mmap_read(curr_vma->f, start_addr, offset, length);
           }
@@ -683,11 +679,10 @@ int sys_mmap(void)
       }
 
       // load file into physical memory
-      if ((flags & MAP_ANON)!=0)
+      if ((flags & MAP_ANON)==0)
       {
         // TODO probably some error here I will need to fix
         // TODO check error status of this fileread
-		cprintf("fileread 2\n");
         fileread(new_vma->f, (void *) start_addr, length);
         // mmap_read(curr_vma->f, start_addr, offset, length);
       }

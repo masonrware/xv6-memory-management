@@ -1,4 +1,5 @@
 #include "types.h"
+
 #include "user.h"
 #include "stat.h"
 #include "mmap.h"
@@ -19,6 +20,8 @@ int main() {
     /* Modify something */
     char *memchar = (char*) mem;
     memchar[0] = 'a'; memchar[1] = 'a';
+    
+    printf(1, "mmap ok, mem written to\n");
 
     /* Clean and return */
     int ret = munmap(mem, len);

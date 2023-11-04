@@ -639,7 +639,7 @@ int sys_mmap(void)
           cprintf("629\n");
           curr_vma->space_after -= length;
           cprintf("631\n");
-          curr_vma = create_vma(&curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
+          curr_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
           cprintf("CREATED NEW VMA\n");
 
@@ -678,7 +678,7 @@ int sys_mmap(void)
           return start_addr;
         }
       }
-      curr_vma = *curr_vma->next;
+      curr_vma = curr_vma->next;
     }
 
     // we couldn't find any space, error out
@@ -698,7 +698,7 @@ int sys_mmap(void)
       // we found enough space
       start_addr = curr_vma->end + 1;
       curr_vma->space_after -= length;
-      curr_vma = create_vma(&curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
+      curr_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
       // allocate physical space and insert it into the page table
       char *pa = kalloc();
@@ -729,7 +729,7 @@ int sys_mmap(void)
 
       return start_addr;
     }
-    curr_vma = *curr_vma->next;
+    curr_vma = curr_vma->next;
   }
 
   // we couldn't find any space, error out

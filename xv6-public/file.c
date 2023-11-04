@@ -99,12 +99,14 @@ fileread(struct file *f, char *addr, int n)
   int r;
 
   cprintf("[1] INSIDE FILEREAD\n");
-  if(f->readable == 0)
+  if(f->readable == 0) {
     cprintf("[2] FILE IS NOT READABLE\n");
     return -1;
-  if(f->type == FD_PIPE)
+  }
+  if(f->type == FD_PIPE) {
     cprintf("[2] FILE IS PIPED.\n");
     return piperead(f->pipe, addr, n);
+  }
   if(f->type == FD_INODE){
     cprintf("[3] FILE IS AN INODE\n");
     ilock(f->ip);

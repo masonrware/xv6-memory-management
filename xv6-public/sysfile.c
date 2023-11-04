@@ -670,7 +670,7 @@ int sys_mmap(void)
             // ??
             // int num_pages = length / PGSIZE;
             // TODO replace this with fileread()....
-            fileread(, (void *) start_addr, length);
+            fileread(p->ofile[fd], (void *) start_addr, length);
             // mmap_read(curr_vma->f, start_addr, length, num_pages * PGSIZE);
             cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
           }
@@ -722,7 +722,7 @@ int sys_mmap(void)
       {
         // ??
         // int num_pages = length / PGSIZE;
-        fileread(curr_vma->f, (void *) start_addr, length);
+        fileread(p->ofile[fd], (void *) start_addr, length);
         // mmap_read(curr_vma->f, start_addr, length, num_pages * PGSIZE);
         cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
       }

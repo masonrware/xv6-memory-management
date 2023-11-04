@@ -290,15 +290,15 @@ fork(void)
   while(curr_vma->next->start != MAX_ADDR) {
     // if it is MAP_SHARED, copy down the mapping
     if(curr_vma->flags & MAP_SHARED) {
-      if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, (void*) curr_vma->pa, curr_vma->prot | PTE_U)!=0){
-        kfree(??);
+      if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
+        kfree(curr_vma->pa);
         np->killed = 1;
       };
     } 
     // if it is MAP_PRIVATE, reallocate the mappings
     else if (curr_vma->flags & MAP_PRIVATE) {
-      if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, (void*) curr_vma->pa, curr_vma->prot | PTE_U)!=0){
-        kfree(??);
+      if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
+        kfree(curr_vma->pa);
         np->killed = 1;
       };
     } else {

@@ -69,6 +69,7 @@ pipeclose(struct pipe *p, int writable)
   }
   if(p->readopen == 0 && p->writeopen == 0){
     release(&p->lock);
+    cprintf("72\n");
     kfree((char*)p);
   } else
     release(&p->lock);

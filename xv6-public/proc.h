@@ -38,6 +38,7 @@ struct vm_area {
   int valid;
   uint start;
   uint end;
+  uint pa;
   int len;
   int prot;
   int flags;

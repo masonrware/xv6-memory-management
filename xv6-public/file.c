@@ -111,9 +111,10 @@ fileread(struct file *f, char *addr, int n)
     cprintf("[3] FILE IS AN INODE\n");
     ilock(f->ip);
     cprintf("[4] ACQUIRED INODE LOCK\n");
-    if((r = readi(f->ip, addr, f->off, n)) > 0)
+    if((r = readi(f->ip, addr, f->off, n)) > 0) {
       cprintf("[5] SUCCESSFULLY READ FILE USING READI\n");
       f->off += r;
+    }
     iunlock(f->ip);
     cprintf("[6] RELEASED INODE LOCK\n");
     return r;

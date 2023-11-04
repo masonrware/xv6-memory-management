@@ -363,7 +363,6 @@ exit(void)
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
 
-  cprintf("366\n");
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
@@ -372,7 +371,6 @@ exit(void)
         wakeup1(initproc);
     }
   }
-  cprintf("375\n");
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;

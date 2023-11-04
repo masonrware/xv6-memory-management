@@ -491,15 +491,13 @@ struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint star
   return vma;
 }
 
-int mmap_read(struct file *f, uint va, int off, int size)
+void mmap_read(struct file *f, uint va, int off, int size)
 {
   ilock(f->ip);
   // read to user space VA.
-  // TODO replace with filread()
   int n = readi(f->ip, (void *)va, off, size);
-  off += n;
+  f->off += n;
   iunlock(f->ip);
-  return off;
 }
 
 /*
@@ -647,7 +645,8 @@ int sys_mmap(void)
           {
             // TODO probably some error here I will need to fix
             // TODO check error status of this fileread
-            fileread(p->ofile[fd], (void *) start_addr, length);
+            // fileread(p->ofile[fd], (void *) start_addr, length);
+            mmap_read(curr_vma->f, start_addr, offset, length);
           }
 
           return start_addr;
@@ -687,7 +686,6 @@ int sys_mmap(void)
 
       if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
       {
-        cprintf("699\n");
         kfree((void *)pa);
         p->killed = 1;
       }
@@ -697,7 +695,8 @@ int sys_mmap(void)
       {
         // TODO probably some error here I will need to fix
         // TODO check error status of this fileread
-        fileread(p->ofile[fd], (void *) start_addr, length);
+        // fileread(p->ofile[fd], (void *) start_addr, length);
+        mmap_read(curr_vma->f, start_addr, offset, length);
       }
 
       return start_addr;

@@ -348,16 +348,17 @@ exit(void)
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
-      cprintf("351\n");
       fileclose(curproc->ofile[fd]);
       curproc->ofile[fd] = 0;
     }
   }
 
+  cprintf("356\n");
   begin_op();
   iput(curproc->cwd);
   end_op();
   curproc->cwd = 0;
+  cprintf("361\n");
 
   acquire(&ptable.lock);
 

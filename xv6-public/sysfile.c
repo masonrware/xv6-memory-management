@@ -594,8 +594,6 @@ int sys_mmap(void)
     return -1;
   }
 
-  cprintf("addr: %d, len: %d, prot: %d, flags: %d, fd: %d, offset: %d\n", (uint)addr, length, prot, flags, fd, offset);
-
   struct proc *p = myproc();
 
   uint start_addr = 0;
@@ -605,11 +603,10 @@ int sys_mmap(void)
   // We must use the provided address
   if (flags & MAP_FIXED)
   {
-    cprintf("YES MAP_FIXED\n");
     // if the address provided is not page-addressable or out of bounds
     if (arg_addr % PGSIZE != 0 || arg_addr < MIN_ADDR || arg_addr >= MAX_ADDR)
     {
-      cprintf("ADDR ERR\n");
+      cprintf("Address is not page-alligned or is out of bounds.\n");
       return -1;
     }
 
@@ -618,30 +615,23 @@ int sys_mmap(void)
     // iterate over allocated VMAs
     while (curr_vma->start != MAX_ADDR)
     {
-      cprintf("searching allocated VMAs\n");
       // if provided address falls within the allocated VMA
       if (arg_addr >= curr_vma->start && arg_addr <= curr_vma->end)
       {
-        cprintf("ALREADY ALLOCATED\n");
+        cprintf("Address has already been mapped.\n");
         return -1;
       }
 
       // if the requested mapping is before the next VMA
       if (arg_addr < curr_vma->next->start)
       {
-        cprintf("POTENTIAL SPACE\n");
         // check the space after it
         if (curr_vma->space_after > length)
         {
-          cprintf("FOUND ENOUGH SPACE\n");
           // we found enough space
           start_addr = arg_addr;
-          cprintf("629\n");
           curr_vma->space_after -= length;
-          cprintf("631\n");
           curr_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
-
-          cprintf("CREATED NEW VMA\n");
 
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
@@ -654,22 +644,19 @@ int sys_mmap(void)
 
           curr_vma->pa = *pa;
 
-          cprintf("ALLOCATED PHYISCAL SPACE\n");
-
           if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
           {
+            cprintf("649\n");
             kfree((void *)pa);
             p->killed = 1;
           }
 
-          cprintf("MAPPED PHYSICAL SPACE IN PTABLE\n");
-
           // load file into physical memory
           if ((flags & MAP_ANON)==0)
           {
-            // TODO replace this with fileread()....
+            // TODO probably some error here I will need to fix
+            // TODO check error status of this fileread
             fileread(p->ofile[fd], (void *) start_addr, length);
-            cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
           }
 
           return start_addr;
@@ -681,7 +668,6 @@ int sys_mmap(void)
     // we couldn't find any space, error out
     return -1;
   }
-  cprintf("NOT MAP_FIXED\n");
   // MAP_FIXED not set, we have to find an address
   struct vm_area *curr_vma = &p->head;
 
@@ -710,6 +696,7 @@ int sys_mmap(void)
 
       if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
       {
+        cprintf("699\n");
         kfree((void *)pa);
         p->killed = 1;
       }
@@ -717,8 +704,9 @@ int sys_mmap(void)
       // load file into physical memory
       if ((flags & MAP_ANON)!=0)
       {
+        // TODO probably some error here I will need to fix
+        // TODO check error status of this fileread
         fileread(p->ofile[fd], (void *) start_addr, length);
-        cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
       }
 
       return start_addr;
@@ -733,14 +721,14 @@ int sys_mmap(void)
 int sys_munmap(void)
 {
   // void *addr, int length
-  void *addr;
+  int addr;
   int length;
   uint arg_addr;
   uint end_addr;
   struct vm_area *vm = 0;
 
   // invalid arg check
-  if (argptr(1, (char **)&addr, sizeof(void *)) < 0 || argint(1, &length) < 0)
+  if (argint(0, &addr) < 0 || argint(1, &length) < 0)
     return -1;
 
   arg_addr = (uint)addr;

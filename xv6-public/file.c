@@ -97,7 +97,8 @@ int
 fileread(struct file *f, char *addr, int n)
 {
   int r;
-
+  
+  cprintf("[1] in fileread\n");
   if(f->readable == 0) {
     return -1;
   }
@@ -107,12 +108,13 @@ fileread(struct file *f, char *addr, int n)
   if(f->type == FD_INODE){
     ilock(f->ip);
     if((r = readi(f->ip, addr, f->off, n)) > 0) {
-      // cprintf("[5] SUCCESSFULLY READ FILE USING READI\n");
+      cprintf("[2] read file using readi\n");
       f->off += r;
     }
     iunlock(f->ip);
     return r;
   }
+  cprintf("[3] file is problematique\n");
   panic("fileread");
 }
 

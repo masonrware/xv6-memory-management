@@ -3,11 +3,6 @@
 #include "stat.h"
 #include "mmap.h"
 
-#include "types.h"
-#include "user.h"
-#include "stat.h"
-#include "mmap.h"
-
 int main() {
     uint addr = 0;
     int len = 4000;

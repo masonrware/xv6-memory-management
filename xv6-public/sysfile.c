@@ -658,7 +658,7 @@ int sys_mmap(void)
 
           if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
           {
-            kfree(pa);
+            kfree((void *)pa);
             p->killed = 1;
           }
 
@@ -713,7 +713,7 @@ int sys_mmap(void)
 
       if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
       {
-        kfree(pa);
+        kfree((void *)pa);
         p->killed = 1;
       }
 

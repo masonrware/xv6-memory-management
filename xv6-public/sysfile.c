@@ -463,43 +463,6 @@ int sys_pipe(void)
  * P5 SYSCALL CODE
  */
 
-struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
-{
-  struct vm_area *vma = 0;
-  struct vm_area *curr_vma = prev;
-  while(curr_vma->next->start!=MIN_ADDR) {
-    if(curr_vma->valid == 0) {
-      vma = prev;
-      break;
-    }
-    curr_vma = prev->next;
-  }
-  if(vma) {
-    vma->valid = 1;
-    vma->start = start;
-    vma->end = PGROUNDUP(start + len) - 1;
-    vma->len = vma->end - start;
-    vma->prot = prot;
-    vma->flags = flags;
-    vma->fd = fd;
-    vma->space_after = next->start - vma->end;
-    vma->f = myproc()->ofile[fd];
-
-    vma->next = next;
-    prev->next = vma;
-  }
-  return vma;
-}
-
-void mmap_read(struct file *f, uint va, int off, int size)
-{
-  ilock(f->ip);
-  // read to user space VA.
-  int n = readi(f->ip, (void *)va, off, size);
-  f->off += n;
-  iunlock(f->ip);
-}
-
 /*
  * COPIED CODE FROM VM.C
  */
@@ -562,6 +525,43 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
  * END COPIED CODE FROM VM.C
  */
 
+struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
+{
+  struct vm_area *vma = 0;
+  struct vm_area *curr_vma = prev;
+  while(curr_vma->next->start!=MIN_ADDR) {
+    if(curr_vma->valid == 0) {
+      vma = prev;
+      break;
+    }
+    curr_vma = prev->next;
+  }
+  if(vma) {
+    vma->valid = 1;
+    vma->start = start;
+    vma->end = PGROUNDUP(start + len) - 1;
+    vma->len = vma->end - start;
+    vma->prot = prot;
+    vma->flags = flags;
+    vma->fd = fd;
+    vma->space_after = next->start - vma->end;
+    vma->f = myproc()->ofile[fd];
+
+    vma->next = next;
+    prev->next = vma;
+  }
+  return vma;
+}
+
+void mmap_read(struct file *f, uint va, int off, int size)
+{
+  ilock(f->ip);
+  // read to user space VA.
+  int n = readi(f->ip, (void *)va, off, size);
+  f->off += n;
+  iunlock(f->ip);
+}
+
 int sys_mmap(void)
 {
   int addr;
@@ -620,7 +620,7 @@ int sys_mmap(void)
           // we found enough space
           start_addr = arg_addr;
           curr_vma->space_after -= length;
-          curr_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
+          struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
@@ -631,11 +631,11 @@ int sys_mmap(void)
           int num_pages = length / PGSIZE;
           memset(pa, 0, num_pages * PGSIZE);
 
-          curr_vma->pa = *pa;
+          new_vma->pa = *pa;
 
-          if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
+          if (mappages(p->pgdir, (void *) start_addr, length, (uint) pa, new_vma->prot | PTE_U) != 0)
           {
-            kfree((void *)pa);
+            kfree((void *) pa);
             p->killed = 1;
           }
 
@@ -644,7 +644,7 @@ int sys_mmap(void)
           {
             // TODO probably some error here I will need to fix
             // TODO check error status of this fileread
-            fileread(curr_vma->f, (char *) start_addr, length);
+            fileread(new_vma->f, (char *) start_addr, length);
             // mmap_read(curr_vma->f, start_addr, offset, length);
           }
 
@@ -670,7 +670,7 @@ int sys_mmap(void)
       // we found enough space
       start_addr = curr_vma->end + 1;
       curr_vma->space_after -= length;
-      curr_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
+      struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
       // allocate physical space and insert it into the page table
       char *pa = kalloc();
@@ -681,11 +681,11 @@ int sys_mmap(void)
       int num_pages = length / PGSIZE;
       memset(pa, 0, num_pages * PGSIZE);
 
-      curr_vma->pa = *pa;
+      new_vma->pa = *pa;
 
-      if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
+      if (mappages(p->pgdir, (void *) start_addr, length, (uint) pa, new_vma->prot | PTE_U) != 0)
       {
-        kfree((void *)pa);
+        kfree((void *) pa);
         p->killed = 1;
       }
 
@@ -694,7 +694,7 @@ int sys_mmap(void)
       {
         // TODO probably some error here I will need to fix
         // TODO check error status of this fileread
-        fileread(curr_vma->f, (char *) start_addr, length);
+        fileread(new_vma->f, (char *) start_addr, length);
         // mmap_read(curr_vma->f, start_addr, offset, length);
       }
 
@@ -768,3 +768,7 @@ int sys_munmap(void)
   }
   return 0;
 }
+
+/*
+* END P5 SYSCALL CODE
+*/

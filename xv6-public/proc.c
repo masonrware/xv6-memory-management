@@ -353,18 +353,18 @@ exit(void)
     }
   }
 
-  cprintf("356\n");
   begin_op();
   iput(curproc->cwd);
   end_op();
   curproc->cwd = 0;
-  cprintf("361\n");
 
   acquire(&ptable.lock);
 
+  cprintf("363\n");
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
-
+  cprintf("366\n");
+  
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){

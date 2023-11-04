@@ -527,7 +527,8 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
 {
-  struct vm_area *vma = 0;
+  cprintf("in create vma\n");
+  struct vm_area *vma = (void *) 0;
   // struct vm_area *curr_vma = prev;
   // while(curr_vma->next->start!=MIN_ADDR) {
   //   if(curr_vma->valid == 0) {
@@ -538,14 +539,23 @@ struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint star
   // }
   // if(vma) {
   vma->valid = 1;
+  cprintf("valid good\n");
   vma->start = start;
+  cprintf("start good\n");
   vma->end = PGROUNDUP(start + len) - 1;
+  cprintf("end good\n");
   vma->len = vma->end - start;
+  cprintf("len good\n");
   vma->prot = prot;
+  cprintf("prot good\n");
   vma->flags = flags;
+  cprintf("flags good\n");
   vma->fd = fd;
+  cprintf("fd good\n");
   vma->space_after = next->start - vma->end;
+  cprintf("space after good\n");
   vma->f = myproc()->ofile[fd];
+  cprintf("file good\n");
 
   vma->next = next;
   prev->next = vma;
@@ -614,14 +624,17 @@ int sys_mmap(void)
       // if the requested mapping is before the next VMA
       if (arg_addr < curr_vma->next->start)
       {
+        cprintf("found vma space for new request\n");
         // check the space after it
         if (curr_vma->space_after > length)
         {
+          cprintf("there is enough space for it\n");
           // we found enough space
           start_addr = arg_addr;
           curr_vma->space_after -= length;
           struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
-
+			
+          cprintf("created new vma\n");
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
           if (pa == 0)

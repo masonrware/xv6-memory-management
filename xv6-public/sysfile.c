@@ -539,7 +539,6 @@ struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint star
   vma->f = myproc()->ofile[fd];
   vma->next = next;
   prev->next = vma;
-  }
   return vma;
 }
 
@@ -747,7 +746,7 @@ int sys_munmap(void)
   if ((vm->flags & MAP_ANON) == 0)
   {
     struct file* f = vm->f;                   // file for fbm
-	filewrite(vm->f, vm->start, vm->len);
+	filewrite(f, (void*)vm->start, vm->len);
   }
 
   // remove mappings from page table

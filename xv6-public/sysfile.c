@@ -635,7 +635,6 @@ int sys_mmap(void)
 
           if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
           {
-            cprintf("649\n");
             kfree((void *)pa);
             p->killed = 1;
           }
@@ -645,8 +644,8 @@ int sys_mmap(void)
           {
             // TODO probably some error here I will need to fix
             // TODO check error status of this fileread
-            // fileread(p->ofile[fd], (void *) start_addr, length);
-            mmap_read(curr_vma->f, start_addr, offset, length);
+            fileread(curr_vma->f, (void *) start_addr, length);
+            // mmap_read(curr_vma->f, start_addr, offset, length);
           }
 
           return start_addr;
@@ -695,8 +694,8 @@ int sys_mmap(void)
       {
         // TODO probably some error here I will need to fix
         // TODO check error status of this fileread
-        // fileread(p->ofile[fd], (void *) start_addr, length);
-        mmap_read(curr_vma->f, start_addr, offset, length);
+        fileread(curr_vma->f, (void *) start_addr, length);
+        // mmap_read(curr_vma->f, start_addr, offset, length);
       }
 
       return start_addr;

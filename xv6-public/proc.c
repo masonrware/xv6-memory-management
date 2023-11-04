@@ -291,6 +291,7 @@ fork(void)
     // if it is MAP_SHARED, copy down the mapping
     if(curr_vma->flags & MAP_SHARED) {
       if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
+        cprintf("294\n");
         kfree((void *) curr_vma->pa);
         np->killed = 1;
       };
@@ -309,6 +310,7 @@ fork(void)
       curr_vma->pa = *pa;
 
       if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
+        cprintf("313\n");
         kfree((void *) curr_vma->pa);
         np->killed = 1;
       };

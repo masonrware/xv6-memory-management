@@ -527,37 +527,16 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
 {
-  cprintf("in create vma\n");
   struct vm_area *vma = (struct vm_area*)kalloc();
-   struct vm_area *curr_vma = prev;
-   while(curr_vma->next->start!=MIN_ADDR) {
-     if(curr_vma->valid == 0) {
-       vma = prev;
-       break;
-     }
-     curr_vma = prev->next;
-   }
-   if(vma) {
-  cprintf("vma->valid\n");
   vma->valid = 1;
-  cprintf("valid good\n");
   vma->start = start;
-  cprintf("start good\n");
   vma->end = PGROUNDUP(start + len) - 1;
-  cprintf("end good\n");
   vma->len = vma->end - start;
-  cprintf("len good\n");
   vma->prot = prot;
-  cprintf("prot good\n");
   vma->flags = flags;
-  cprintf("flags good\n");
   vma->fd = fd;
-  cprintf("fd good\n");
   vma->space_after = next->start - vma->end;
-  cprintf("space after good\n");
   vma->f = myproc()->ofile[fd];
-  cprintf("file good\n");
-  cprintf("%d | %d\n", vma->f->type, FD_INODE);
   vma->next = next;
   prev->next = vma;
   }
@@ -658,6 +637,7 @@ int sys_mmap(void)
           {
             // TODO probably some error here I will need to fix
             // TODO check error status of this fileread
+			cprintf("fileread\n");
             fileread(new_vma->f, (void *) start_addr, length);
             // mmap_read(curr_vma->f, start_addr, offset, length);
           }
@@ -708,6 +688,7 @@ int sys_mmap(void)
       {
         // TODO probably some error here I will need to fix
         // TODO check error status of this fileread
+		cprintf("fileread 2\n");
         fileread(new_vma->f, (void *) start_addr, length);
         // mmap_read(curr_vma->f, start_addr, offset, length);
       }
@@ -762,15 +743,11 @@ int sys_munmap(void)
   if (vm == (void *)0)
     return -1;
 
-  // write back to file if shared flag is set
-  if (vm->flags & MAP_SHARED)
+  // write back to file if fbm enabled
+  if ((vm->flags & MAP_ANON) == 0)
   {
     struct file* f = vm->f;                   // file for fbm
-    begin_op(f->ip->dev);                     // initiate file system op; acquire file system lock
-    ilock(f->ip);                             // lock file's inode
-    writei(f->ip,(void *) vm->start, 0, vm->len);     // write data from mem to file 
-    iunlock(f->ip);                           // unlock inode
-    end_op(f->ip->dev);                       // end of operation; release file system lock
+	filewrite(vm->f, vm->start, vm->len);
   }
 
   // remove mappings from page table

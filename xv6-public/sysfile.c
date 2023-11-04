@@ -644,7 +644,7 @@ int sys_mmap(void)
           {
             // TODO probably some error here I will need to fix
             // TODO check error status of this fileread
-            fileread(new_vma->f, (char *) start_addr, length);
+            fileread(new_vma->f, (void *) start_addr, length);
             // mmap_read(curr_vma->f, start_addr, offset, length);
           }
 
@@ -694,7 +694,7 @@ int sys_mmap(void)
       {
         // TODO probably some error here I will need to fix
         // TODO check error status of this fileread
-        fileread(new_vma->f, (char *) start_addr, length);
+        fileread(new_vma->f, (void *) start_addr, length);
         // mmap_read(curr_vma->f, start_addr, offset, length);
       }
 

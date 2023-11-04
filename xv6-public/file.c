@@ -98,17 +98,25 @@ fileread(struct file *f, char *addr, int n)
 {
   int r;
 
+  cprintf("[1] INSIDE FILEREAD\n");
   if(f->readable == 0)
+    cprintf("[2] FILE IS NOT READABLE\n");
     return -1;
   if(f->type == FD_PIPE)
+    cprintf("[2] FILE IS PIPED.\n");
     return piperead(f->pipe, addr, n);
   if(f->type == FD_INODE){
+    cprintf("[3] FILE IS AN INODE\n");
     ilock(f->ip);
+    cprintf("[4] ACQUIRED INODE LOCK\n");
     if((r = readi(f->ip, addr, f->off, n)) > 0)
+      cprintf("[5] SUCCESSFULLY READ FILE USING READI\n");
       f->off += r;
     iunlock(f->ip);
+    cprintf("[6] RELEASED INODE LOCK\n");
     return r;
   }
+  cprintf("[7] NONE OF THE ABOVE...\n");
   panic("fileread");
 }
 

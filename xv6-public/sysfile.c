@@ -613,33 +613,33 @@ int sys_mmap(void)
       return -1;
     }
 
-    struct vm_area curr_vma = p->head;
+    struct vm_area *curr_vma = &p->head;
 
     // iterate over allocated VMAs
-    while (curr_vma.start != MAX_ADDR)
+    while (curr_vma->start != MAX_ADDR)
     {
       cprintf("searching allocated VMAs\n");
       // if provided address falls within the allocated VMA
-      if (arg_addr >= curr_vma.start && arg_addr <= curr_vma.end)
+      if (arg_addr >= curr_vma->start && arg_addr <= curr_vma->end)
       {
         cprintf("ALREADY ALLOCATED\n");
         return -1;
       }
 
       // if the requested mapping is before the next VMA
-      if (arg_addr < curr_vma.next->start)
+      if (arg_addr < curr_vma->next->start)
       {
         cprintf("POTENTIAL SPACE\n");
         // check the space after it
-        if (curr_vma.space_after > length)
+        if (curr_vma->space_after > length)
         {
           cprintf("FOUND ENOUGH SPACE\n");
           // we found enough space
           start_addr = arg_addr;
           cprintf("629\n");
-          curr_vma.space_after -= length;
+          curr_vma->space_after -= length;
           cprintf("631\n");
-          create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
+          curr_vma = create_vma(&curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
           cprintf("CREATED NEW VMA\n");
 
@@ -652,9 +652,11 @@ int sys_mmap(void)
           int num_pages = length / PGSIZE;
           memset(pa, 0, num_pages * PGSIZE);
 
+          curr_vma->pa = *pa;
+
           cprintf("ALLOCATED PHYISCAL SPACE\n");
 
-          if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma.prot | PTE_U) != 0)
+          if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
           {
             kfree(pa);
             p->killed = 1;
@@ -668,15 +670,15 @@ int sys_mmap(void)
             // ??
             // int num_pages = length / PGSIZE;
             // TODO replace this with fileread()....
-            fileread(curr_vma.f, (void *) start_addr, length);
-            // mmap_read(curr_vma.f, start_addr, length, num_pages * PGSIZE);
+            fileread(, (void *) start_addr, length);
+            // mmap_read(curr_vma->f, start_addr, length, num_pages * PGSIZE);
             cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
           }
 
           return start_addr;
         }
       }
-      curr_vma = *curr_vma.next;
+      curr_vma = *curr_vma->next;
     }
 
     // we couldn't find any space, error out
@@ -684,19 +686,19 @@ int sys_mmap(void)
   }
   cprintf("NOT MAP_FIXED\n");
   // MAP_FIXED not set, we have to find an address
-  struct vm_area curr_vma = p->head;
+  struct vm_area *curr_vma = &p->head;
 
   // iterate over allocated VMAs
-  while (curr_vma.start != MAX_ADDR)
+  while (curr_vma->start != MAX_ADDR)
   {
     // check the space after it - request encroaching on next VMA is covered because the
     // starting address is not arbitrary
-    if (curr_vma.space_after > length)
+    if (curr_vma->space_after > length)
     {
       // we found enough space
-      start_addr = curr_vma.end + 1;
-      curr_vma.space_after -= length;
-      create_vma(&curr_vma, curr_vma.next, start_addr, length, prot, flags, fd);
+      start_addr = curr_vma->end + 1;
+      curr_vma->space_after -= length;
+      curr_vma = create_vma(&curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
       // allocate physical space and insert it into the page table
       char *pa = kalloc();
@@ -707,7 +709,9 @@ int sys_mmap(void)
       int num_pages = length / PGSIZE;
       memset(pa, 0, num_pages * PGSIZE);
 
-      if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma.prot | PTE_U) != 0)
+      curr_vma->pa = *pa;
+
+      if (mappages(p->pgdir, (void *)start_addr, length, (uint)pa, curr_vma->prot | PTE_U) != 0)
       {
         kfree(pa);
         p->killed = 1;
@@ -718,15 +722,14 @@ int sys_mmap(void)
       {
         // ??
         // int num_pages = length / PGSIZE;
-        // TODO replace this with fileread()....
-        fileread(curr_vma.f, (void *) start_addr, length);
-        // mmap_read(curr_vma.f, start_addr, length, num_pages * PGSIZE);
+        fileread(curr_vma->f, (void *) start_addr, length);
+        // mmap_read(curr_vma->f, start_addr, length, num_pages * PGSIZE);
         cprintf("BACKED PHYISCAL SPACE WITH FILE CONTENTS\n");
       }
 
       return start_addr;
     }
-    curr_vma = *curr_vma.next;
+    curr_vma = *curr_vma->next;
   }
 
   // we couldn't find any space, error out

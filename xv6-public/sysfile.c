@@ -754,7 +754,7 @@ int sys_munmap(void)
     struct file* f = vm->f;                   // file for fbm
     begin_op(f->ip->dev);                     // initiate file system op; acquire file system lock
     ilock(f->ip);                             // lock file's inode
-    writei(f->ip, vm->start, 0, vm->len);     // write data from mem to file 
+    writei(f->ip,(void *) vm->start, 0, vm->len);     // write data from mem to file 
     iunlock(f->ip);                           // unlock inode
     end_op(f->ip->dev);                       // end of operation; release file system lock
   }
@@ -763,7 +763,7 @@ int sys_munmap(void)
   pte_t* pte;
   for (int i = arg_addr; i <= end_addr; i += PGSIZE)      // walk through each page of vma
   {     
-    if ((pte = walkpgdir(myproc()->pgdir, i, 0)) == 0){   // obtain the PTE for current page
+    if ((pte = walkpgdir(myproc()->pgdir, (void *) i, 0)) == 0){   // obtain the PTE for current page
       if (*pte & PTE_P){                                  // check present (valid) bit
         char* v = P2V(PTE_ADDR(*pte));                    // addr translation for PTE
         kfree(v);                                         // free physical memory

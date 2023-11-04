@@ -528,28 +528,28 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
 {
   struct vm_area *vma = 0;
-  struct vm_area *curr_vma = prev;
-  while(curr_vma->next->start!=MIN_ADDR) {
-    if(curr_vma->valid == 0) {
-      vma = prev;
-      break;
-    }
-    curr_vma = prev->next;
-  }
-  if(vma) {
-    vma->valid = 1;
-    vma->start = start;
-    vma->end = PGROUNDUP(start + len) - 1;
-    vma->len = vma->end - start;
-    vma->prot = prot;
-    vma->flags = flags;
-    vma->fd = fd;
-    vma->space_after = next->start - vma->end;
-    vma->f = myproc()->ofile[fd];
+  // struct vm_area *curr_vma = prev;
+  // while(curr_vma->next->start!=MIN_ADDR) {
+  //   if(curr_vma->valid == 0) {
+  //     vma = prev;
+  //     break;
+  //   }
+  //   curr_vma = prev->next;
+  // }
+  // if(vma) {
+  vma->valid = 1;
+  vma->start = start;
+  vma->end = PGROUNDUP(start + len) - 1;
+  vma->len = vma->end - start;
+  vma->prot = prot;
+  vma->flags = flags;
+  vma->fd = fd;
+  vma->space_after = next->start - vma->end;
+  vma->f = myproc()->ofile[fd];
 
-    vma->next = next;
-    prev->next = vma;
-  }
+  vma->next = next;
+  prev->next = vma;
+  // }
   return vma;
 }
 

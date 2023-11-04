@@ -702,10 +702,26 @@ int sys_munmap(void)
   // write back to file if shared flag is set
   if (vm->flags & MAP_SHARED)
   {
-    // TODO: file backed mapping write back
+    struct file* f = vm->f;                   // file for fbm
+    begin_op(f->ip->dev);                     // initiate file system op; acquire file system lock
+    ilock(f->ip);                             // lock file's inode
+    writei(f->ip, vm->start, 0, vm->len);     // write data from mem to file 
+    iunlock(f->ip);                           // unlock inode
+    end_op(f->ip->dev);                       // end of operation; release file system lock
   }
 
-  // TODO: remove mappings from page table?
+  // remove mappings from page table
+  pte_t* pte;
+  for (int i = arg_addr; i <= end_addr; i += PGSIZE)      // walk through each page of vma
+  {     
+    if ((pte = walkpgdir(myproc()->pgdir, i, 0)) == 0){   // obtain the PTE for current page
+      if (*pte & PTE_P){                                  // check present (valid) bit
+        char* v = P2V(PTE_ADDR(*pte));                    // addr translation for PTE
+        kfree(v);                                         // free physical memory
+      }
+      *pte = 0;                                           // remove PTE
+    }
+  }
 
   // mark end of freed memory at the next highest page
   end_addr = PGROUNDUP(end_addr) - 1;

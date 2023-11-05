@@ -746,7 +746,7 @@ int sys_munmap(void)
     return -1;
 
   // write back to file if fbm enabled
-  if (((vm->flags & MAP_ANON) == 0) || ((vm->flags & MAP_PRIVATE) == 0))
+  if (((vm->flags & MAP_ANON) == 0))
   {
     struct file* f = vm->f;                   // file for fbm
 	f->off = 0;

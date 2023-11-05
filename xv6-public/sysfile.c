@@ -527,39 +527,29 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint start, int len, int prot, int flags, int fd)
 {
-  struct vm_area *vma = 0;
-  struct vm_area *curr_vma = prev;
-  while(curr_vma->next->start!=MIN_ADDR) {
-    if(curr_vma->valid == 0) {
-      vma = prev;
-      break;
-    }
-    curr_vma = prev->next;
-  }
-  if(vma) {
-    vma->valid = 1;
-    vma->start = start;
-    vma->end = PGROUNDUP(start + len) - 1;
-    vma->len = vma->end - start;
-    vma->prot = prot;
-    vma->flags = flags;
-    vma->fd = fd;
-    vma->space_after = next->start - vma->end;
-    vma->f = myproc()->ofile[fd];
-
-    vma->next = next;
-    prev->next = vma;
-  }
+  struct vm_area *vma = (struct vm_area*)kalloc();
+  vma->valid = 1;
+  vma->start = start;
+  vma->end = PGROUNDUP(start + len) - 1;
+  vma->len = vma->end - start;
+  vma->prot = prot;
+  vma->flags = flags;
+  vma->fd = fd;
+  vma->space_after = next->start - vma->end;
+  vma->f = myproc()->ofile[fd];
+  vma->next = next;
+  prev->next = vma;
   return vma;
 }
 
-void mmap_read(struct file *f, uint va, int off, int size)
+int mmap_read(struct file *f, uint va, int off, int size)
 {
   ilock(f->ip);
   // read to user space VA.
-  int n = readi(f->ip, (void *)va, off, size);
-  f->off += n;
+  int n = readi(f->ip, (char *) va, off, size);
+  off += n;
   iunlock(f->ip);
+  return off;
 }
 
 int sys_mmap(void)
@@ -621,31 +611,34 @@ int sys_mmap(void)
           start_addr = arg_addr;
           curr_vma->space_after -= length;
           struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
-
+			
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
           if (pa == 0)
-          {
             panic("kalloc");
-          }
-          int num_pages = length / PGSIZE;
-          memset(pa, 0, num_pages * PGSIZE);
+          memset(pa, 0, PGSIZE);
 
-          new_vma->pa = *pa;
+          new_vma->pa = (uint) pa;
 
-          if (mappages(p->pgdir, (void *) start_addr, length, (uint) pa, new_vma->prot | PTE_U) != 0)
+          if (mappages(p->pgdir, (void *) start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
           {
-            kfree((void *) pa);
+            kfree(pa);
             p->killed = 1;
           }
 
           // load file into physical memory
           if ((flags & MAP_ANON)==0)
           {
-            // TODO probably some error here I will need to fix
-            // TODO check error status of this fileread
-            fileread(new_vma->f, (void *) start_addr, length);
-            // mmap_read(curr_vma->f, start_addr, offset, length);
+            struct file *f = p->ofile[fd];
+
+            // Read the file content into vaddr
+            fileread(f, (char *) start_addr, f->ip->size);
+
+
+            // // TODO probably some error here I will need to fix
+            // // TODO check error status of this fileread
+            // // fileread(new_vma->f, (void *) start_addr, length);
+            // mmap_read(curr_vma->f, start_addr, offset, PGSIZE);
           }
 
           return start_addr;
@@ -675,27 +668,28 @@ int sys_mmap(void)
       // allocate physical space and insert it into the page table
       char *pa = kalloc();
       if (pa == 0)
-      {
         panic("kalloc");
-      }
-      int num_pages = length / PGSIZE;
-      memset(pa, 0, num_pages * PGSIZE);
+      memset(pa, 0, PGSIZE);
 
-      new_vma->pa = *pa;
+      new_vma->pa = (uint) pa;
 
-      if (mappages(p->pgdir, (void *) start_addr, length, (uint) pa, new_vma->prot | PTE_U) != 0)
+      if (mappages(p->pgdir, (void *) start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
       {
-        kfree((void *) pa);
+        kfree(pa);
         p->killed = 1;
       }
 
       // load file into physical memory
-      if ((flags & MAP_ANON)!=0)
+      if ((flags & MAP_ANON)==0)
       {
-        // TODO probably some error here I will need to fix
-        // TODO check error status of this fileread
-        fileread(new_vma->f, (void *) start_addr, length);
-        // mmap_read(curr_vma->f, start_addr, offset, length);
+        struct file *f = p->ofile[fd];
+
+        // Read the file content into vaddr
+        fileread(f, (char *) start_addr, f->ip->size);
+        // // TODO probably some error here I will need to fix
+        // // TODO check error status of this fileread
+        // // fileread(new_vma->f, (void *) start_addr, length);
+        // mmap_read(curr_vma->f, start_addr, offset, PGSIZE);
       }
 
       return start_addr;
@@ -735,7 +729,7 @@ int sys_munmap(void)
   // iterate through VMAs to find VM to free
   while (curr.start != MAX_ADDR)
   {
-    if (arg_addr == curr.start)
+    if (arg_addr == curr.start && curr.valid == 1)
     {
       vm = &curr;
       break;
@@ -748,22 +742,18 @@ int sys_munmap(void)
   if (vm == (void *)0)
     return -1;
 
-  // write back to file if shared flag is set
-  if (vm->flags & MAP_SHARED)
+  // write back to file if fbm enabled
+  if ((vm->flags & MAP_ANON) == 0)
   {
     struct file* f = vm->f;                   // file for fbm
-    begin_op(f->ip->dev);                     // initiate file system op; acquire file system lock
-    ilock(f->ip);                             // lock file's inode
-    writei(f->ip, vm->start, 0, vm->len);     // write data from mem to file 
-    iunlock(f->ip);                           // unlock inode
-    end_op(f->ip->dev);                       // end of operation; release file system lock
+	  filewrite(f, (void*)vm->start, vm->len);
   }
 
   // remove mappings from page table
   pte_t* pte;
   for (int i = arg_addr; i <= end_addr; i += PGSIZE)      // walk through each page of vma
   {     
-    if ((pte = walkpgdir(myproc()->pgdir, i, 0)) == 0){   // obtain the PTE for current page
+    if ((pte = walkpgdir(myproc()->pgdir, (void *) i, 0)) == 0){   // obtain the PTE for current page
       if (*pte & PTE_P){                                  // check present (valid) bit
         char* v = P2V(PTE_ADDR(*pte));                    // addr translation for PTE
         kfree(v);                                         // free physical memory
@@ -778,7 +768,7 @@ int sys_munmap(void)
   // remove entire mapping block: | A | A | A | ->  |   |   |   |
   if (arg_addr == vm->start)
   {
-    vm->valid = 1;                // make mem block available
+    vm->valid = 0;                // make mem block available
     prev->next = vm->next;        // link previous block to next block after curr (unlink curr)
     prev->space_after += vm->len; // add space from unlinked block to space avail. after previous block
   }

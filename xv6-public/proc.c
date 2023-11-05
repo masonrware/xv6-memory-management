@@ -231,17 +231,20 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
   a = (char *)PGROUNDDOWN((uint)va);
   last = (char *)PGROUNDDOWN(((uint)va) + size - 1);
+
+  uint pa_phys = V2P(pa); // V2P test
+
   for (;;)
   {
     if ((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
     if (*pte & PTE_P)
       panic("remap");
-    *pte = pa | perm | PTE_P;
+    *pte = pa_phys | perm | PTE_P; // V2P test
     if (a == last)
       break;
     a += PGSIZE;
-    pa += PGSIZE;
+    pa_phys += PGSIZE; // V2P test
   }
   return 0;
 }
@@ -287,12 +290,11 @@ fork(void)
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
   struct vm_area *curr_vma = &curproc->head;
-  while(curr_vma->next->start != MAX_ADDR) {
+  while(curr_vma->start != MAX_ADDR) {
     // if it is MAP_SHARED, copy down the mapping
     if(curr_vma->flags & MAP_SHARED) {
-      if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
-        cprintf("294\n");
-        kfree((void *) curr_vma->pa);
+      if(mappages(np->pgdir, (void *) curr_vma->start, PGSIZE, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
+        kfree((char *) curr_vma->pa);
         np->killed = 1;
       };
     } 
@@ -304,22 +306,14 @@ fork(void)
       {
         panic("kalloc");
       }
-      int num_pages = curr_vma->len / PGSIZE;
-      memset(pa, 0, num_pages * PGSIZE);
 
-      curr_vma->pa = *pa;
-
-      if(mappages(np->pgdir, (void *)curr_vma->start, curr_vma->len, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
-        cprintf("313\n");
-        kfree((void *) curr_vma->pa);
+      if(mappages(np->pgdir, (void *) curr_vma->start, PGSIZE, (uint)pa, curr_vma->prot | PTE_U)!=0){
+        kfree(pa);
         np->killed = 1;
       };
-    } else {
-      // TODO: SHOULD I THROW AN ERROR
     }
+    curr_vma = curr_vma->next;
   }
-  // Copy mappings down to child.
-  // TODO check for MAP_PRIVATE vs. MAP_SHARED
 
   pid = np->pid;
 

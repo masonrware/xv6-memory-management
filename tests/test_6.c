@@ -24,7 +24,7 @@ int main() {
     int fd = open(filename, O_CREATE | O_RDWR);
     if (fd < 0) {
         printf(1, "Error opening file\n");
-    goto failed;
+	goto failed;
     }
 
     /* Write some data to the file */
@@ -33,32 +33,32 @@ int main() {
     }
     if (write(fd, buff, len) != len) {
         printf(1, "Error: Write to file FAILED\n");
-    goto failed;
+	goto failed;
     }
     close(fd);
 
     fd = open(filename, O_CREATE | O_RDWR);
-
+    
     /* Memory map the file */
     void *mem = mmap(0, len, prot, flags, fd, 0);
     if (mem == (void *)-1) {
         printf(1, "mmap FAILED\n");
-        goto failed;
+	goto failed;
     }
 
     /* Verify the data in mmaped memory is the same as what was written */
     char *mem_buff = (char *)mem;
-    printf(1, "from mmap: %s\ncopy of mmap: %s\n");
+    cprintf("from mmap: %s\ncopy of mmap: %s\n");
     if (my_strcmp(mem_buff, buff, len) != 0) {
         printf(1, "Couldn't read the same data back!\n");
-        goto failed;
+	goto failed;
     }
 
     /* Clean and return */
     int ret = munmap(mem, len);
     if (ret < 0) {
         printf(1, "munmap FAILED\n");
-    goto failed;
+	goto failed;
     }
 
     close(fd);
@@ -71,4 +71,3 @@ failed:
     printf(1, "MMAP\t FAILED\n");
     exit();
 }
-

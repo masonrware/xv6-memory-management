@@ -632,7 +632,7 @@ int sys_mmap(void)
             struct file *f = p->ofile[fd];
 
             // Read the file content into vaddr
-            fileread(f, new_vma->end, f->ip->size);
+            fileread(f, (char *) start_addr, f->ip->size);
 
 
             // // TODO probably some error here I will need to fix
@@ -685,7 +685,7 @@ int sys_mmap(void)
         struct file *f = p->ofile[fd];
 
         // Read the file content into vaddr
-        fileread(f, new_vma->end, f->ip->size);
+        fileread(f, (char *) start_addr, f->ip->size);
         // // TODO probably some error here I will need to fix
         // // TODO check error status of this fileread
         // // fileread(new_vma->f, (void *) start_addr, length);

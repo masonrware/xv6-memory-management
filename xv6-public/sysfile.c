@@ -620,7 +620,7 @@ int sys_mmap(void)
           int num_pages = length / PGSIZE;
           memset(pa, 0, num_pages * PGSIZE);
 
-          new_vma->pa = *pa;
+          new_vma->pa = (uint) pa;
 
           if (mappages(p->pgdir, (void *) start_addr, length, (uint) pa, new_vma->prot | PTE_U) != 0)
           {
@@ -670,7 +670,7 @@ int sys_mmap(void)
       int num_pages = length / PGSIZE;
       memset(pa, 0, num_pages * PGSIZE);
 
-      new_vma->pa = *pa;
+      new_vma->pa = (uint) pa;
 
       if (mappages(p->pgdir, (void *) start_addr, length, (uint) pa, new_vma->prot | PTE_U) != 0)
       {
@@ -683,6 +683,7 @@ int sys_mmap(void)
       {
         // TODO probably some error here I will need to fix
         // TODO check error status of this fileread
+        cprintf("reading file!\n");
         fileread(new_vma->f, (void *) start_addr, length);
         // mmap_read(curr_vma->f, start_addr, offset, length);
       }

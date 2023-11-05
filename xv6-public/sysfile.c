@@ -506,17 +506,20 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
   a = (char *)PGROUNDDOWN((uint)va);
   last = (char *)PGROUNDDOWN(((uint)va) + size - 1);
+
+  uint pa_phys = V2P(pa); // V2P test
+
   for (;;)
   {
     if ((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
     if (*pte & PTE_P)
       panic("remap");
-    *pte = pa | perm | PTE_P;
+    *pte = pa_phys | perm | PTE_P; // V2P test
     if (a == last)
       break;
     a += PGSIZE;
-    pa += PGSIZE;
+    pa_phys += PGSIZE; // V2P test
   }
   return 0;
 }
@@ -630,7 +633,7 @@ int sys_mmap(void)
           if ((flags & MAP_ANON)==0)
           {
             struct file *f = p->ofile[fd];
-
+			f->off = 0;
             // Read the file content into vaddr
             fileread(f, (char *) start_addr, f->ip->size);
 
@@ -683,7 +686,7 @@ int sys_mmap(void)
       if ((flags & MAP_ANON)==0)
       {
         struct file *f = p->ofile[fd];
-
+		f->off = 0;
         // Read the file content into vaddr
         fileread(f, (char *) start_addr, f->ip->size);
         // // TODO probably some error here I will need to fix
@@ -746,7 +749,8 @@ int sys_munmap(void)
   if ((vm->flags & MAP_ANON) == 0)
   {
     struct file* f = vm->f;                   // file for fbm
-	  filewrite(f, (void*)vm->start, vm->len);
+	f->off = 0;
+	filewrite(f, (void*)vm->start, vm->len);
   }
 
   // remove mappings from page table

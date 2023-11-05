@@ -632,7 +632,7 @@ int sys_mmap(void)
             struct file *f = p->ofile[fd];
 
             // Read the file content into vaddr
-            fileread(f, start_addr, f->ip->size);
+            fileread(f, new_vma->end, f->ip->size);
 
 
             // // TODO probably some error here I will need to fix
@@ -685,7 +685,7 @@ int sys_mmap(void)
         struct file *f = p->ofile[fd];
 
         // Read the file content into vaddr
-        fileread(f, start_addr, f->ip->size);
+        fileread(f, new_vma->end, f->ip->size);
         // // TODO probably some error here I will need to fix
         // // TODO check error status of this fileread
         // // fileread(new_vma->f, (void *) start_addr, length);
@@ -746,7 +746,7 @@ int sys_munmap(void)
   if ((vm->flags & MAP_ANON) == 0)
   {
     struct file* f = vm->f;                   // file for fbm
-	filewrite(f, (void*)vm->start, vm->len);
+	  filewrite(f, (void*)vm->start, vm->len);
   }
 
   // remove mappings from page table

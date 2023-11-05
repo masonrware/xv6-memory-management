@@ -542,11 +542,11 @@ struct vm_area *create_vma(struct vm_area *prev, struct vm_area *next, uint star
   return vma;
 }
 
-void mmap_read(struct file *f, uint va, int off, int size)
+int mmap_read(struct file *f, uint va, int off, int size)
 {
   ilock(f->ip);
   // read to user space VA.
-  int n = readi(f->ip, va, off, size);
+  int n = readi(f->ip, (char *) va, off, size);
   off += n;
   iunlock(f->ip);
   return off;
@@ -620,7 +620,7 @@ int sys_mmap(void)
 
           new_vma->pa = (uint) pa;
 
-          if (mappages(p->pgdir, start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+          if (mappages(p->pgdir, (void *) start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
           {
             kfree(pa);
             p->killed = 1;
@@ -667,7 +667,7 @@ int sys_mmap(void)
 
       new_vma->pa = (uint) pa;
 
-      if (mappages(p->pgdir, start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+      if (mappages(p->pgdir, (void *) start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
       {
         kfree(pa);
         p->killed = 1;

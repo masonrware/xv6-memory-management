@@ -306,9 +306,8 @@ fork(void)
       {
         panic("kalloc");
       }
-      curr_vma->pa = (uint) pa;
 
-      if(mappages(np->pgdir, (void *) curr_vma->start, PGSIZE, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
+      if(mappages(np->pgdir, (void *) curr_vma->start, PGSIZE, pa, curr_vma->prot | PTE_U)!=0){
         kfree(pa);
         np->killed = 1;
       };

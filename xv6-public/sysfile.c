@@ -546,9 +546,10 @@ void mmap_read(struct file *f, uint va, int off, int size)
 {
   ilock(f->ip);
   // read to user space VA.
-  int n = readi(f->ip, (void *)va, off, size);
-  f->off += n;
+  int n = readi(f->ip, va, off, size);
+  off += n;
   iunlock(f->ip);
+  return off;
 }
 
 int sys_mmap(void)
@@ -614,17 +615,14 @@ int sys_mmap(void)
           // allocate physical space and insert it into the page table
           char *pa = kalloc();
           if (pa == 0)
-          {
             panic("kalloc");
-          }
-          int num_pages = length / PGSIZE;
-          memset(pa, 0, num_pages * PGSIZE);
+          memset(pa, 0, PGSIZE);
 
           new_vma->pa = (uint) pa;
 
-          if (mappages(p->pgdir, (void *) start_addr, length, (uint) pa, new_vma->prot | PTE_U) != 0)
+          if (mappages(p->pgdir, start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
           {
-            kfree((void *) pa);
+            kfree(pa);
             p->killed = 1;
           }
 
@@ -633,8 +631,8 @@ int sys_mmap(void)
           {
             // TODO probably some error here I will need to fix
             // TODO check error status of this fileread
-            fileread(new_vma->f, (void *) start_addr, length);
-            // mmap_read(curr_vma->f, start_addr, offset, length);
+            // fileread(new_vma->f, (void *) start_addr, length);
+            mmap_read(curr_vma->f, start_addr, offset, PGSIZE);
           }
 
           return start_addr;
@@ -664,17 +662,14 @@ int sys_mmap(void)
       // allocate physical space and insert it into the page table
       char *pa = kalloc();
       if (pa == 0)
-      {
         panic("kalloc");
-      }
-      int num_pages = length / PGSIZE;
-      memset(pa, 0, num_pages * PGSIZE);
+      memset(pa, 0, PGSIZE);
 
       new_vma->pa = (uint) pa;
 
-      if (mappages(p->pgdir, (void *) start_addr, length, (uint) pa, new_vma->prot | PTE_U) != 0)
+      if (mappages(p->pgdir, start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
       {
-        kfree((void *) pa);
+        kfree(pa);
         p->killed = 1;
       }
 
@@ -683,9 +678,8 @@ int sys_mmap(void)
       {
         // TODO probably some error here I will need to fix
         // TODO check error status of this fileread
-        cprintf("reading file!\n");
-        fileread(new_vma->f, (void *) start_addr, length);
-        // mmap_read(curr_vma->f, start_addr, offset, length);
+        // fileread(new_vma->f, (void *) start_addr, length);
+        mmap_read(curr_vma->f, start_addr, offset, PGSIZE);
       }
 
       return start_addr;

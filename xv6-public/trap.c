@@ -190,6 +190,7 @@ trap(struct trapframe *tf)
           }
 
           cprintf("MAPPED MEMORY\n");
+          curr->len += PGSIZE;
           curr->end += PGSIZE;
 
           // only one page between current vma and next, next access to guard page will be invalid

@@ -785,8 +785,8 @@ int sys_munmap(void)
   if ((vm->flags & MAP_ANON) == 0 && (vm->flags & MAP_PRIVATE) == 0)
   {
     struct file* f = vm->f;                   // file for fbm
-	f->off = 0;
-	filewrite(f, (void*)vm->start, vm->len);
+	  f->off = 0;
+	  filewrite(f, (void*)vm->start, vm->len);
   }
 
   // remove mappings from page table

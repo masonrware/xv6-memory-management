@@ -198,7 +198,7 @@ trap(struct trapframe *tf)
           break;
         }
       }
-
+      curr = curr->next;
     }
 
 

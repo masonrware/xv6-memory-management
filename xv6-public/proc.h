@@ -39,6 +39,7 @@ struct vm_area {
   uint start;
   uint end;
   uint pa;
+  uint guardstart;
   int len;
   int prot;
   int flags;

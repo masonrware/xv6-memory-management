@@ -7,6 +7,10 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "mmap.h"
+#include "fs.h"
+#include "sleeplock.h"
+#include "file.h"
+#include "fcntl.h"
 
 struct {
   struct spinlock lock;
@@ -292,25 +296,36 @@ fork(void)
   struct vm_area *curr_vma = &curproc->head;
   while(curr_vma->start != MAX_ADDR) {
     // if it is MAP_SHARED, copy down the mapping
+    uint offset = 0;
     if(curr_vma->flags & MAP_SHARED) {
-      if(mappages(np->pgdir, (void *) curr_vma->start, PGSIZE, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
-        kfree((char *) curr_vma->pa);
-        np->killed = 1;
-      };
+      for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
+       if(mappages(np->pgdir, (void *) i, PGSIZE, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
+          kfree((char *) curr_vma->pa);
+          np->killed = 1;
+        };
+        offset+=PGSIZE;
+      }
     } 
     // if it is MAP_PRIVATE, reallocate the mappings
     else if (curr_vma->flags & MAP_PRIVATE) {
-      // reallocate
-      char *pa = kalloc();
-      if (pa == 0)
-      {
-        panic("kalloc");
-      }
+      for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
+        // reallocate
+        char *pa = kalloc();
+        if (pa == 0)
+        {
+          panic("kalloc");
+        }
+        // pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
+        // memmove(pa, (void *) PTE_ADDR(*pteAddr), PGSIZE);
+    
+        // memmove(pa, (void *) curr_vma->pa+i, PGSIZE);
+        if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
+          kfree(pa);
+          np->killed = 1;
+        };
 
-      if(mappages(np->pgdir, (void *) curr_vma->start, PGSIZE, (uint)pa, curr_vma->prot | PTE_U)!=0){
-        kfree(pa);
-        np->killed = 1;
-      };
+        offset+=PGSIZE;
+      }
     }
     curr_vma = curr_vma->next;
   }
@@ -338,7 +353,7 @@ exit(void)
 
   if(curproc == initproc)
     panic("init exiting");
-
+  
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
@@ -346,12 +361,12 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
   }
-
+  
   begin_op();
   iput(curproc->cwd);
   end_op();
   curproc->cwd = 0;
-
+  
   acquire(&ptable.lock);
 
   // Parent might be sleeping in wait().
@@ -368,7 +383,7 @@ exit(void)
 
   // Release process memory mappings
   freevm(myproc()->pgdir);
-
+  
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
   sched();

@@ -16,15 +16,15 @@ int my_strcmp(const char *a, const char *b, int n) {
 int main() {
     char *filename = "test_file.txt";
     int len = 100;
-    char buff[len];
     int prot = PROT_READ | PROT_WRITE;
-    int flags = MAP_SHARED;
+    int flags = MAP_PRIVATE;
+    char buff[len];
 
     /* Open a file */
     int fd = open(filename, O_CREATE | O_RDWR);
     if (fd < 0) {
         printf(1, "Error opening file\n");
-    goto failed;
+        goto failed;
     }
 
     /* Write some data to the file */
@@ -33,35 +33,47 @@ int main() {
     }
     if (write(fd, buff, len) != len) {
         printf(1, "Error: Write to file FAILED\n");
-    goto failed;
+        goto failed;
     }
     close(fd);
 
     fd = open(filename, O_CREATE | O_RDWR);
 
-    /* Memory map the file */
+    /* mmap the file */
     void *mem = mmap(0, len, prot, flags, fd, 0);
     if (mem == (void *)-1) {
         printf(1, "mmap FAILED\n");
         goto failed;
     }
 
-    /* Verify the data in mmaped memory is the same as what was written */
-    char *mem_buff = (char *)mem;
-    printf(1, "from mmap: %s\ncopy of mmap: %s\n");
-    if (my_strcmp(mem_buff, buff, len) != 0) {
-        printf(1, "Couldn't read the same data back!\n");
-        goto failed;
+    /* Fork */
+    int pid = fork();
+    if (pid == 0) {
+        /* Verify the child can read the same data */
+        char *mem_buff = (char *)mem;
+        if (my_strcmp(mem_buff, buff, len) != 0) {
+            printf(1, "Data mismatch in child\n");
+            goto failed;
+        }
+
+	/* Child success - exit */
+	exit();
+    printf(1, "done exiting\n");
+
+    } else {
+        wait();
+        /* Clean and return */
+        int ret = munmap(mem, len);
+        if (ret < 0) {
+            printf(1, "munmap FAILED\n");
+            goto failed;
+        }
+
+        close(fd);
     }
 
-    /* Clean and return */
-    int ret = munmap(mem, len);
-    if (ret < 0) {
-        printf(1, "munmap FAILED\n");
-    goto failed;
-    }
 
-    close(fd);
+
 
 // success:
     printf(1, "MMAP\t SUCCESS\n");
@@ -71,4 +83,3 @@ failed:
     printf(1, "MMAP\t FAILED\n");
     exit();
 }
-

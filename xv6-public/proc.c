@@ -315,7 +315,8 @@ fork(void)
         {
           panic("kalloc");
         }
-        memmove(pa, (char*)P2V(curr_vma->pa+offset), PGSIZE);
+        pte_t *pteAddr = walkpgdir(curproc->pgdir, curr_vma->start+offset, 0);
+        memmove(pa, (char*)P2V(pteAddr), PGSIZE);
 
         if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
           kfree(pa);

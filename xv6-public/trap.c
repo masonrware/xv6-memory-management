@@ -150,7 +150,7 @@ trap(struct trapframe *tf)
 
     if (fault_addr < MIN_ADDR || fault_addr >= MAX_ADDR)
     {
-      cprintf("access out of bounds: addr space constraints\n");
+      // cprintf("access out of bounds: addr space constraints\n");
       myproc()->killed = 1;
       break;
     }
@@ -166,7 +166,7 @@ trap(struct trapframe *tf)
       // passed fault addr w/ no valid guard page; seg fault
       else if (fault_addr < curr->start)
       {
-        cprintf("access out of bounds: addr not in a guard page\n");
+        // cprintf("access out of bounds: addr not in a guard page\n");
         myproc()->killed = 1;
         break;
       }
@@ -193,7 +193,7 @@ trap(struct trapframe *tf)
         // margin is too small; seg fault
         else
         {
-          cprintf("access out of bounds: insufficient margin\n");
+          // cprintf("access out of bounds: insufficient margin\n");
           myproc()->killed = 1;
           break;
         }

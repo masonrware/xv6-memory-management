@@ -307,26 +307,26 @@ fork(void)
       }
     } 
     // if it is MAP_PRIVATE, reallocate the mappings
-    else if (curr_vma->flags & MAP_PRIVATE) {
-      for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
-        // reallocate
-        char *pa = kalloc();
-        if (pa == 0)
-        {
-          panic("kalloc");
-        }
-        // pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
-        // memmove(pa, (void *) PTE_ADDR(*pteAddr), PGSIZE);
+    // else if (curr_vma->flags & MAP_PRIVATE) {
+    //   for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
+    //     // reallocate
+    //     char *pa = kalloc();
+    //     if (pa == 0)
+    //     {
+    //       panic("kalloc");
+    //     }
+    //     // pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
+    //     // memmove(pa, (void *) PTE_ADDR(*pteAddr), PGSIZE);
     
-        memmove(pa, (void *) curr_vma->pa+1, PGSIZE);
-        if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
-          kfree(pa);
-          np->killed = 1;
-        };
+    //     memmove(pa, (void *) curr_vma->pa+1, PGSIZE);
+    //     if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
+    //       kfree(pa);
+    //       np->killed = 1;
+    //     };
 
-        offset+=PGSIZE;
-      }
-    }
+    //     offset+=PGSIZE;
+    //   }
+    // }
     curr_vma = curr_vma->next;
   }
 
@@ -381,10 +381,8 @@ exit(void)
     }
   }
 
-  cprintf("HERE IS THE ERROR\n");
   // Release process memory mappings
   freevm(myproc()->pgdir);
-  cprintf("FREEVM IS HANGING\n");
   
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;

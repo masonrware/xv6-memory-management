@@ -709,12 +709,10 @@ int sys_mmap(void)
       // account for guard page
       if ((flags & MAP_GROWSUP) != 0 && (flags & MAP_ANON) == 0)
       {
-        cprintf(">>>detected MAP_GROWSUP\n");
         struct file *f = p->ofile[fd];
-		f->off = 0;
+		    f->off = 0;
         // Read the file content into vaddr
         fileread(f, (char *) start_addr, f->ip->size);
-        cprintf(">>>wrote file for MAP_GROWSUP\n");
       }
 
       return start_addr;

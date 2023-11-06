@@ -308,15 +308,22 @@ fork(void)
     } 
     // if it is MAP_PRIVATE, reallocate the mappings
     else if (curr_vma->flags & MAP_PRIVATE) {
+      cprintf(">in MAP_PRIVATE case\n");
       for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
+        cprintf(">>reallocating physical memory for %d\n", i);
         // reallocate
         char *pa = kalloc();
         if (pa == 0)
         {
           panic("kalloc");
         }
-        pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) curr_vma->start+offset, 0);
-        memmove(pa, (char*)P2V(pteAddr), PGSIZE);
+        cprintf(">>>trying to access parent's pagetable entry for this address\n");
+        pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
+        cprintf(">>>>building virtual page table address\n");
+        char *vpteAddr = P2V(PTE_ADDR(pteAddr));
+        cprintf(">>>>trying to move parents pte address to physical address\n");
+        memmove(pa, vpteAddr, PGSIZE);
+        cprintf(">>>>>successfully moved %d to %d\n", P2V(PTE_ADDR(pteAddr)), pa);
 
         // if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
         //   kfree(pa);

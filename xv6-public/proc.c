@@ -315,20 +315,22 @@ fork(void)
         {
           panic("kalloc");
         }
-        
+        memmove(pa, (char*)P2V(curr_vma->pa+offset), PGSIZE);
+
         if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
           kfree(pa);
           np->killed = 1;
         };
 
-        // load file into physical memory
-        if ((curr_vma->flags & MAP_ANON)==0)
-        {
-          struct file *f = curproc->ofile[curr_vma->fd];
-          f->off = 0;
-          // Read the file content into vaddr
-          fileread(f, (char *) i, PGSIZE);
-        }
+        offset+=PGSIZE;
+        // // load file into physical memory
+        // if ((curr_vma->flags & MAP_ANON)==0)
+        // {
+        //   struct file *f = curproc->ofile[curr_vma->fd];
+        //   f->off = 0;
+        //   // Read the file content into vaddr
+        //   fileread(f, (char *) i, PGSIZE);
+        // }
       }
     }
     curr_vma = curr_vma->next;

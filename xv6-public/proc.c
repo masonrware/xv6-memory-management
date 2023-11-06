@@ -308,37 +308,24 @@ fork(void)
     } 
     // if it is MAP_PRIVATE, reallocate the mappings
     else if (curr_vma->flags & MAP_PRIVATE) {
-      cprintf(">in MAP_PRIVATE case\n");
       for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
-        cprintf(">>reallocating physical memory for %d\n", i);
         // reallocate
         char *pa = kalloc();
         if (pa == 0)
         {
           panic("kalloc");
         }
-        cprintf(">>>trying to access parent's pagetable entry for this address\n");
-        pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
-        cprintf(">>>>building virtual page table address\n");
-        char *vpteAddr = P2V(PTE_ADDR(pteAddr));
-        cprintf(">>>>trying to move parents pte address to physical address\n");
-        memmove(pa, vpteAddr, PGSIZE);
-        cprintf(">>>>>successfully moved %d to %d\n", P2V(PTE_ADDR(pteAddr)), pa);
+        // pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
+        // char *vpteAddr = P2V(PTE_ADDR(pteAddr));
+        // memmove(pa, vpteAddr, PGSIZE);
+        memmove(pa, (void *) i, PGSIZE);
 
-        // if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
-        //   kfree(pa);
-        //   np->killed = 1;
-        // };
+        if(mappages(np->pgdir, (void *) i, PGSIZE, ((uint) pa)+offset, curr_vma->prot | PTE_U)!=0){
+          kfree(pa);
+          np->killed = 1;
+        };
 
         offset+=PGSIZE;
-        // // load file into physical memory
-        // if ((curr_vma->flags & MAP_ANON)==0)
-        // {
-        //   struct file *f = curproc->ofile[curr_vma->fd];
-        //   f->off = 0;
-        //   // Read the file content into vaddr
-        //   fileread(f, (char *) i, PGSIZE);
-        // }
       }
     }
     curr_vma = curr_vma->next;
@@ -367,7 +354,7 @@ exit(void)
 
   if(curproc == initproc)
     panic("init exiting");
-
+  
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
@@ -375,12 +362,12 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
   }
-
+  
   begin_op();
   iput(curproc->cwd);
   end_op();
   curproc->cwd = 0;
-
+  
   acquire(&ptable.lock);
 
   // Parent might be sleeping in wait().
@@ -395,6 +382,7 @@ exit(void)
     }
   }
 
+    
   // Release process memory mappings
   freevm(myproc()->pgdir);
 

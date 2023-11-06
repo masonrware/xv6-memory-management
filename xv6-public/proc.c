@@ -320,7 +320,7 @@ fork(void)
         // memmove(pa, (void *) PTE_ADDR(*pteAddr), PGSIZE);
 
         memmove(pa, (void *) curr_vma->pa, PGSIZE);
-
+        cprintf(">>MOVED %d to %d", curr_vma->pa, (uint pa));
         if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
           kfree(pa);
           np->killed = 1;

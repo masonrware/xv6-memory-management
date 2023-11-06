@@ -645,13 +645,13 @@ int sys_mmap(void)
           }
 
           // account for guard page
-          if ((flags & MAP_GROWSUP) != 0)
-          {
-            struct file *f = p->ofile[fd];
-			      f->off = 0;
-            // Read the file content into vaddr
-            fileread(f, (char *) start_addr, f->ip->size);
-          }
+          // if ((flags & MAP_GROWSUP) != 0)
+          // {
+          //   struct file *f = p->ofile[fd];
+			    //   f->off = 0;
+          //   // Read the file content into vaddr
+          //   fileread(f, (char *) start_addr, f->ip->size);
+          // }
 
           return start_addr;
         }
@@ -705,13 +705,13 @@ int sys_mmap(void)
       }
 
       // account for guard page
-      if ((flags & MAP_GROWSUP) != 0)
-      {
-        struct file *f = p->ofile[fd];
-		    f->off = 0;
-        // Read the file content into vaddr
-        fileread(f, (char *) start_addr, f->ip->size);
-      }
+      // if ((flags & MAP_GROWSUP) != 0)
+      // {
+      //   struct file *f = p->ofile[fd];
+		  //   f->off = 0;
+      //   // Read the file content into vaddr
+      //   fileread(f, (char *) start_addr, f->ip->size);
+      // }
 
       return start_addr;
     }

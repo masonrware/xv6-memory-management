@@ -617,18 +617,30 @@ int sys_mmap(void)
           curr_vma->space_after -= length;
           struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
-          // *** Ben's edit: allocate physical space, insert into page table ***
-          for (int i = start_addr; i < new_vma->end; i += PGSIZE)
-          {
+          // // *** Ben's edit: allocate physical space, insert into page table ***
+          // for (int i = start_addr; i < new_vma->end; i += PGSIZE)
+          // {
+          //   char *pa = kalloc();
+          //   if (pa == 0)
+          //     panic("kalloc");
+          //   memset(pa, 0, PGSIZE);
+
+          //   // set pa of vma to first page's pa
+          //   if (i == start_addr) new_vma->pa = (uint) pa;
+
+          //   if (mappages(p->pgdir, (void *) i, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+          //   {
+          //     kfree(pa);
+          //     p->killed = 1;
+          //   }
             char *pa = kalloc();
             if (pa == 0)
               panic("kalloc");
             memset(pa, 0, PGSIZE);
 
-            // set pa of vma to first page's pa
-            if (i == start_addr) new_vma->pa = (uint) pa;
+            new_vma->pa = (uint) pa;
 
-            if (mappages(p->pgdir, (void *) i, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+            if (mappages(p->pgdir, (void *) start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
             {
               kfree(pa);
               p->killed = 1;
@@ -640,19 +652,18 @@ int sys_mmap(void)
               struct file *f = p->ofile[fd];
 			        f->off = 0;
               // Read the file content into vaddr
-              fileread(f, (char *) i, PGSIZE);
+              // fileread(f, (char *) i, PGSIZE);
+              fileread(f, (char *) start_addr, PGSIZE);
             }
-          }
+          // }
 
           // account for guard page
           if ((flags & MAP_GROWSUP) != 0 && (flags & MAP_ANON) == 0)
           {
-            cprintf(">>detected MAP_GROWSUP\n");
             struct file *f = p->ofile[fd];
 			      f->off = 0;
             // Read the file content into vaddr
             fileread(f, (char *) start_addr, f->ip->size);
-            cprintf(">>wrote file for MAP_GROWSUP\n");
           }
 
           return start_addr;
@@ -680,17 +691,29 @@ int sys_mmap(void)
       struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
       // *** Ben's edit: allocate physical space, insert into page table ***
-      for (int i = start_addr; i < new_vma->end; i += PGSIZE)
-      {
+      // for (int i = start_addr; i < new_vma->end; i += PGSIZE)
+      // {
+      //   char *pa = kalloc();
+      //   if (pa == 0)
+      //     panic("kalloc");
+      //   memset(pa, 0, PGSIZE);
+
+      //   // set pa of vma to first page's pa
+      //   if (i == start_addr) new_vma->pa = (uint) pa;
+
+      //   if (mappages(p->pgdir, (void *) i, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+      //   {
+      //     kfree(pa);
+      //     p->killed = 1;
+      //   }
         char *pa = kalloc();
         if (pa == 0)
           panic("kalloc");
         memset(pa, 0, PGSIZE);
 
-        // set pa of vma to first page's pa
-        if (i == start_addr) new_vma->pa = (uint) pa;
+        new_vma->pa = (uint) pa;
 
-        if (mappages(p->pgdir, (void *) i, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+        if (mappages(p->pgdir, (void *) start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
         {
           kfree(pa);
           p->killed = 1;
@@ -702,9 +725,10 @@ int sys_mmap(void)
           struct file *f = p->ofile[fd];
           f->off = 0;
           // Read the file content into vaddr
-          fileread(f, (char *) i, PGSIZE);
+          // fileread(f, (char *) i, PGSIZE);
+          fileread(f, (char *) start_addr, PGSIZE);
         }
-      }
+      // }
 
       // account for guard page
       if ((flags & MAP_GROWSUP) != 0 && (flags & MAP_ANON) == 0)

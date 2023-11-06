@@ -202,7 +202,7 @@ trap(struct trapframe *tf)
         myproc()->killed = 1;
         break;
       }
-
+      curr = curr->next;
     }
 
 

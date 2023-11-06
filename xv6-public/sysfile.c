@@ -724,7 +724,7 @@ int sys_mmap(void)
         // not enough space for guard page
         else
         {
-          cprintf("no room for guard page\n");
+          // cprintf("no room for guard page\n");
           return -1;
         }
       }

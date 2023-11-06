@@ -367,6 +367,7 @@ exit(void)
   }
 
   // Release process memory mappings
+  cprintf("FREEVM\n");
   freevm(myproc()->pgdir);
 
   // Jump into the scheduler, never to return.

@@ -299,7 +299,7 @@ fork(void)
     uint offset = 0;
     if(curr_vma->flags & MAP_SHARED) {
       for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
-       if(mappages(np->pgdir, (void *) i, PGSIZE, curr_vma->pa + i, curr_vma->prot | PTE_U)!=0){
+       if(mappages(np->pgdir, (void *) i, PGSIZE, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
           kfree((char *) curr_vma->pa);
           np->killed = 1;
         };
@@ -318,7 +318,7 @@ fork(void)
         // pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
         // memmove(pa, (void *) PTE_ADDR(*pteAddr), PGSIZE);
     
-        // memmove(pa, (void *) curr_vma->pa+1, PGSIZE);
+        // memmove(pa, (void *) curr_vma->pa+i, PGSIZE);
         if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
           kfree(pa);
           np->killed = 1;

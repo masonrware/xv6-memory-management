@@ -7,8 +7,10 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "mmap.h"
-
+#include "sleeplock.h"
+#include "fs.h"
 #include "file.h"
+#include "fcntl.h"
 
 struct {
   struct spinlock lock;

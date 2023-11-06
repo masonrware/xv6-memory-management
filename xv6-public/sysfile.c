@@ -616,34 +616,49 @@ int sys_mmap(void)
           start_addr = arg_addr;
           curr_vma->space_after -= length;
           struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
-			
-          // allocate physical space and insert it into the page table
-          char *pa = kalloc();
-          if (pa == 0)
-            panic("kalloc");
-          memset(pa, 0, PGSIZE);
 
-          new_vma->pa = (uint) pa;
-
-          if (mappages(p->pgdir, (void *) start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+          // *** Ben's edit: allocate physical space, insert into page table ***
+          for (int i = start_addr; i < new_vma->end; i += PGSIZE)
           {
-            kfree(pa);
-            p->killed = 1;
+            char *pa = kalloc();
+            if (pa == 0)
+              panic("kalloc");
+            memset(pa, 0, PGSIZE);
+
+            // set pa of vma to first page's pa
+            if (i == start_addr) new_vma->pa = (uint) pa;
+
+            if (mappages(p->pgdir, (void *) i, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+            {
+              kfree(pa);
+              p->killed = 1;
+            }
+
+            // load file into physical memory
+            if ((flags & MAP_ANON)==0)
+            {
+              struct file *f = p->ofile[fd];
+			        f->off = 0;
+              // Read the file content into vaddr
+              fileread(f, (char *) i, PGSIZE);
+            }
           }
 
-          // load file into physical memory
-          if ((flags & MAP_ANON)==0)
+          // account for guard page
+          if ((flags & MAP_GROWSUP) != 0)
           {
-            struct file *f = p->ofile[fd];
-			f->off = 0;
-            // Read the file content into vaddr
-            fileread(f, (char *) start_addr, f->ip->size);
-
-
-            // // TODO probably some error here I will need to fix
-            // // TODO check error status of this fileread
-            // // fileread(new_vma->f, (void *) start_addr, length);
-            // mmap_read(curr_vma->f, start_addr, offset, PGSIZE);
+            // check margin space, must be at least PGSIZE space for guard page
+            if ((new_vma->next->start - (new_vma->end + 1)) < PGSIZE)
+            {
+              new_vma->guardstart = new_vma->end + 1;     // track start of guard page
+              new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
+            }
+            // not enough space for guard page
+            else
+            {
+              cprintf("no room for guard page\n");
+              return -1;
+            }
           }
 
           return start_addr;
@@ -670,31 +685,48 @@ int sys_mmap(void)
       curr_vma->space_after -= length;
       struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
-      // allocate physical space and insert it into the page table
-      char *pa = kalloc();
-      if (pa == 0)
-        panic("kalloc");
-      memset(pa, 0, PGSIZE);
-
-      new_vma->pa = (uint) pa;
-
-      if (mappages(p->pgdir, (void *) start_addr, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+      // *** Ben's edit: allocate physical space, insert into page table ***
+      for (int i = start_addr; i < new_vma->end; i += PGSIZE)
       {
-        kfree(pa);
-        p->killed = 1;
+        char *pa = kalloc();
+        if (pa == 0)
+          panic("kalloc");
+        memset(pa, 0, PGSIZE);
+
+        // set pa of vma to first page's pa
+        if (i == start_addr) new_vma->pa = (uint) pa;
+
+        if (mappages(p->pgdir, (void *) i, PGSIZE, (uint) pa, new_vma->prot | PTE_U) != 0)
+        {
+          kfree(pa);
+          p->killed = 1;
+        }
+
+        // load file into physical memory
+        if ((flags & MAP_ANON)==0)
+        {
+          struct file *f = p->ofile[fd];
+          f->off = 0;
+          // Read the file content into vaddr
+          fileread(f, (char *) i, PGSIZE);
+        }
       }
 
-      // load file into physical memory
-      if ((flags & MAP_ANON)==0)
+      // account for guard page
+      if ((flags & MAP_GROWSUP) != 0)
       {
-        struct file *f = p->ofile[fd];
-		f->off = 0;
-        // Read the file content into vaddr
-        fileread(f, (char *) start_addr, f->ip->size);
-        // // TODO probably some error here I will need to fix
-        // // TODO check error status of this fileread
-        // // fileread(new_vma->f, (void *) start_addr, length);
-        // mmap_read(curr_vma->f, start_addr, offset, PGSIZE);
+        // check margin space, must be at least PGSIZE space for guard page
+        if ((new_vma->next->start - (new_vma->end + 1)) < PGSIZE)
+        {
+          new_vma->guardstart = new_vma->end + 1;     // track start of guard page
+          new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
+        }
+        // not enough space for guard page
+        else
+        {
+          cprintf("no room for guard page\n");
+          return -1;
+        }
       }
 
       return start_addr;
@@ -757,7 +789,7 @@ int sys_munmap(void)
 
   // remove mappings from page table
   pte_t* pte;
-  for (int i = arg_addr; i <= end_addr; i += PGSIZE)      // walk through each page of vma
+  for (int i = arg_addr; i < end_addr; i += PGSIZE)      // walk through each page of vma
   {     
     if ((pte = walkpgdir(myproc()->pgdir, (void *) i, 0)) == 0){   // obtain the PTE for current page
       if (*pte & PTE_P){                                  // check present (valid) bit

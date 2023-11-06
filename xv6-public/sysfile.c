@@ -680,7 +680,7 @@ int sys_mmap(void)
       if ((flags & MAP_ANON)==0)
       {
         struct file *f = p->ofile[fd];
-		f->off = 0;
+		    f->off = 0;
         // Read the file content into vaddr
         fileread(f, (char *) start_addr, f->ip->size);
       }

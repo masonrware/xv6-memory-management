@@ -315,13 +315,13 @@ fork(void)
         {
           panic("kalloc");
         }
-        pte_t *pteAddr = walkpgdir(curproc->pgdir, curr_vma->start+offset, 0);
+        pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) curr_vma->start+offset, 0);
         memmove(pa, (char*)P2V(pteAddr), PGSIZE);
 
-        if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
-          kfree(pa);
-          np->killed = 1;
-        };
+        // if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
+        //   kfree(pa);
+        //   np->killed = 1;
+        // };
 
         offset+=PGSIZE;
         // // load file into physical memory

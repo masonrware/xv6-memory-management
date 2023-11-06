@@ -7,8 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "mmap.h"
-#include "sleeplock.h"
 #include "fs.h"
+#include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
 
@@ -296,33 +296,39 @@ fork(void)
   struct vm_area *curr_vma = &curproc->head;
   while(curr_vma->start != MAX_ADDR) {
     // if it is MAP_SHARED, copy down the mapping
+    uint offset = 0;
     if(curr_vma->flags & MAP_SHARED) {
-      if(mappages(np->pgdir, (void *) curr_vma->start, PGSIZE, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
-        kfree((char *) curr_vma->pa);
-        np->killed = 1;
-      };
+      for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
+        if(mappages(np->pgdir, (void *) i, PGSIZE, curr_vma->pa+offset, curr_vma->prot | PTE_U)!=0){
+          kfree((char *) curr_vma->pa);
+          np->killed = 1;
+        };
+        offset+=PGSIZE;
+      }
     } 
     // if it is MAP_PRIVATE, reallocate the mappings
     else if (curr_vma->flags & MAP_PRIVATE) {
-      // reallocate
-      char *pa = kalloc();
-      if (pa == 0)
-      {
-        panic("kalloc");
-      }
+      for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
+        // reallocate
+        char *pa = kalloc();
+        if (pa == 0)
+        {
+          panic("kalloc");
+        }
+        
+        if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
+          kfree(pa);
+          np->killed = 1;
+        };
 
-      if(mappages(np->pgdir, (void *) curr_vma->start, PGSIZE, (uint)pa, curr_vma->prot | PTE_U)!=0){
-        kfree(pa);
-        np->killed = 1;
-      };
-
-      // load file into physical memory
-      if ((curr_vma->flags & MAP_ANON)==0)
-      {
-        struct file *f = curproc->ofile[curr_vma->fd];
-        f->off = 0;
-        // Read the file content into vaddr
-        fileread(f, (char *) curr_vma->start, f->ip->size);
+        // load file into physical memory
+        if ((curr_vma->flags & MAP_ANON)==0)
+        {
+          struct file *f = curproc->ofile[curr_vma->fd];
+          f->off = 0;
+          // Read the file content into vaddr
+          fileread(f, (char *) i, PGSIZE);
+        }
       }
     }
     curr_vma = curr_vma->next;

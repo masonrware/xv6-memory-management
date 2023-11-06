@@ -645,7 +645,7 @@ int sys_mmap(void)
           }
 
           // account for guard page
-          if ((flags & MAP_GROWSUP) != 0)
+          if ((flags & MAP_GROWSUP) != 0 && (flags & MAP_ANON) == 0)
           {
             // check margin space, must be at least PGSIZE space for guard page
             if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
@@ -715,7 +715,7 @@ int sys_mmap(void)
       }
 
       // account for guard page
-      if ((flags & MAP_GROWSUP) != 0)
+      if ((flags & MAP_GROWSUP) != 0 && (flags & MAP_ANON) == 0)
       {
         // check margin space, must be at least PGSIZE space for guard page
         if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
@@ -784,7 +784,7 @@ int sys_munmap(void)
     return -1;
 
   // write back to file if fbm enabled
-  if (((vm->flags & MAP_ANON) == 0))
+  if ((vm->flags & MAP_ANON) == 0 && (vm->flags & MAP_PRIVATE) == 0)
   {
     struct file* f = vm->f;                   // file for fbm
 	f->off = 0;

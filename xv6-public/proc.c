@@ -306,7 +306,7 @@ fork(void)
         offset+=PGSIZE;
       }
     } 
-    if it is MAP_PRIVATE, reallocate the mappings
+    // if it is MAP_PRIVATE, reallocate the mappings
     else if (curr_vma->flags & MAP_PRIVATE) {
       for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
         // reallocate
@@ -316,9 +316,9 @@ fork(void)
           panic("kalloc");
         }
         // pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
-        // char *vpteAddr = P2V(PTE_ADDR(pteAddr));
-        // memmove(pa, vpteAddr, PGSIZE);
-        memmove(pa, (void *) i, PGSIZE);
+        // memmove(pa, P2V(PTE_ADDR(pteAddr)), PGSIZE);
+
+        memmove(pa, P2V(curr_vma->pa+offset), PGSIZE);
 
         if(mappages(np->pgdir, (void *) i, PGSIZE, ((uint) pa)+offset, curr_vma->prot | PTE_U)!=0){
           kfree(pa);

@@ -160,6 +160,7 @@ trap(struct trapframe *tf)
       // vma doesn't have growsup enabled; skip
       if ((curr->flags & MAP_GROWSUP) == 0)
       {
+
         curr = curr->next;
         continue;
       }
@@ -190,7 +191,7 @@ trap(struct trapframe *tf)
           curr->end += PGSIZE;
 
           // only one page between current vma and next, next access to guard page will be invalid
-          if (((curr->next->start - (curr->end + 1)) / PGSIZE) < 2) curr->guardstart = -1;
+          if ((curr->next->start - (curr->end + 1) < 2*PGSIZE)) curr->guardstart = -1;
           else curr->guardstart = curr->end + 1;
 
         }

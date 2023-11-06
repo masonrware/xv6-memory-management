@@ -650,6 +650,7 @@ int sys_mmap(void)
             // check margin space, must be at least PGSIZE space for guard page
             if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
             {
+              cprintf("guard page set\n");
               new_vma->guardstart = new_vma->end + 1;     // track start of guard page
               // new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
             }
@@ -719,6 +720,7 @@ int sys_mmap(void)
         // check margin space, must be at least PGSIZE space for guard page
         if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
         {
+          cprintf("guard page set\n");
           new_vma->guardstart = new_vma->end + 1;     // track start of guard page
           // new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
         }

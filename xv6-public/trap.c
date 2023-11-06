@@ -171,10 +171,10 @@ trap(struct trapframe *tf)
         break;
       }
       // fault addr within guard page, check if there is space to grow up
-      else if (fault_addr >= curr->guardstart && fault_addr <= curr->end)
+      else if (curr->guardstart > 0)
       {
         // at least a page of margin between guard page and next vma; allocate guard page
-        if ((curr->next->start - (curr->end + 1)) >= PGSIZE)
+        if (fault_addr >= curr->guardstart && fault_addr <= (curr->guardstart + PGSIZE -1))
         {
           char *pa = kalloc();
           if (pa == 0)
@@ -187,16 +187,20 @@ trap(struct trapframe *tf)
             myproc()->killed = 1;
           }
 
-          curr->guardstart = curr->end + 1;
           curr->end += PGSIZE;
+
+          // only one page between current vma and next, next access to guard page will be invalid
+          if (((curr->next->start - (curr->end + 1)) / PGSIZE) < 2) curr->guardstart = -1;
+          else curr->guardstart = curr->end + 1;
+
         }
-        // margin is too small; seg fault
-        else
-        {
-          // cprintf("access out of bounds: insufficient margin\n");
-          myproc()->killed = 1;
-          break;
-        }
+        
+      }
+      // allocating guard page not possible, no margin left for next guard page
+      else
+      {
+        myproc()->killed = 1;
+        break;
       }
 
     }

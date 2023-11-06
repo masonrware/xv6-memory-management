@@ -648,16 +648,17 @@ int sys_mmap(void)
           if ((flags & MAP_GROWSUP) != 0)
           {
             // check margin space, must be at least PGSIZE space for guard page
-            if ((new_vma->next->start - (new_vma->end + 1)) < PGSIZE)
+            if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
             {
               new_vma->guardstart = new_vma->end + 1;     // track start of guard page
-              new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
+              // new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
             }
             // not enough space for guard page
             else
             {
               cprintf("no room for guard page\n");
               return -1;
+              // new_vma->guardstart = -1;
             }
           }
 
@@ -716,16 +717,17 @@ int sys_mmap(void)
       if ((flags & MAP_GROWSUP) != 0)
       {
         // check margin space, must be at least PGSIZE space for guard page
-        if ((new_vma->next->start - (new_vma->end + 1)) < PGSIZE)
+        if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
         {
           new_vma->guardstart = new_vma->end + 1;     // track start of guard page
-          new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
+          // new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
         }
         // not enough space for guard page
         else
         {
-          // cprintf("no room for guard page\n");
+          cprintf("no room for guard page\n");
           return -1;
+          // new_vma->guardstart = -1;
         }
       }
 

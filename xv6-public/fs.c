@@ -452,6 +452,7 @@ stati(struct inode *ip, struct stat *st)
 int
 readi(struct inode *ip, char *dst, uint off, uint n)
 {
+  // cprintf("SUCCESS\n");
   uint tot, m;
   struct buf *bp;
 

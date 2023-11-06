@@ -186,6 +186,7 @@ trap(struct trapframe *tf)
           {
             kfree(pa);
             myproc()->killed = 1;
+            break;
           }
 
           cprintf("MAPPED MEMORY\n");
@@ -194,6 +195,8 @@ trap(struct trapframe *tf)
           // only one page between current vma and next, next access to guard page will be invalid
           if ((curr->next->start - (curr->end + 1) < 2*PGSIZE)) curr->guardstart = -1;
           else curr->guardstart = curr->end + 1;
+
+          break;
         }
       }
       // allocating guard page not possible, no margin left for next guard page

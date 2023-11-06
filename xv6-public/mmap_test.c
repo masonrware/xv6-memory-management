@@ -14,54 +14,48 @@ int my_strcmp(const char *a, const char *b, int n) {
 }
 
 int main() {
-    char *filename = "test_file.txt";
-    int len = 100;
-    char buff[len];
+    int len = 4000;
+    int extra = 1000;
     int prot = PROT_READ | PROT_WRITE;
-    int flags = MAP_SHARED;
+    int flags = MAP_ANON | MAP_SHARED | MAP_GROWSUP;
+    int fd = -1;
 
-    /* Open a file */
-    int fd = open(filename, O_CREATE | O_RDWR);
-    if (fd < 0) {
-        printf(1, "Error opening file\n");
-    goto failed;
-    }
-
-    /* Write some data to the file */
-    for (int i = 0; i < len; i++) {
-        buff[i] = (char)(i % 256);
-    }
-    if (write(fd, buff, len) != len) {
-        printf(1, "Error: Write to file FAILED\n");
-    goto failed;
-    }
-    close(fd);
-
-    fd = open(filename, O_CREATE | O_RDWR);
-
-    /* Memory map the file */
+    /* mmap anon memory */
     void *mem = mmap(0, len, prot, flags, fd, 0);
     if (mem == (void *)-1) {
         printf(1, "mmap FAILED\n");
-        goto failed;
+	goto failed;
     }
 
-    /* Verify the data in mmaped memory is the same as what was written */
+    /* Fill the memory with data */
+    char *buff = (char *)malloc((len + extra) * sizeof(char));
     char *mem_buff = (char *)mem;
-    printf(1, "from mmap: %s\ncopy of mmap: %s\n");
-    if (my_strcmp(mem_buff, buff, len) != 0) {
-        printf(1, "Couldn't read the same data back!\n");
-        goto failed;
+    for (int i = 0; i < (len + extra); i++) {
+        printf(1, "%d\n", mem+i);
+        mem_buff[i] = (char)(i % 256);
+        buff[i] = mem_buff[i];
     }
+
+    printf(1, "%s\n%s\n", buff, mem_buff);
+
+    /* See if those values have been actually written */
+    if (my_strcmp(mem_buff, buff, (len + extra)) != 0) {
+        printf(1, "Couldn't read the same data back!\n");
+        printf(1, "Expected: %s\n", buff);
+        printf(1, "Got: %s\n", mem_buff);
+	goto failed;
+    }
+
+    printf(1, "passed check 1\n");
 
     /* Clean and return */
-    int ret = munmap(mem, len);
+    int ret = munmap(mem, len + extra);
     if (ret < 0) {
         printf(1, "munmap FAILED\n");
-    goto failed;
+	goto failed;
     }
+    free(buff);
 
-    close(fd);
 
 // success:
     printf(1, "MMAP\t SUCCESS\n");
@@ -71,4 +65,3 @@ failed:
     printf(1, "MMAP\t FAILED\n");
     exit();
 }
-

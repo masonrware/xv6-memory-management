@@ -187,13 +187,14 @@ trap(struct trapframe *tf)
             kfree(pa);
             myproc()->killed = 1;
           }
+          cprintf("MAPPED SUCCESFULLY: %d <---- %d\n", curr->guardstart, pa);
 
           curr->end += PGSIZE;
 
           // only one page between current vma and next, next access to guard page will be invalid
           if ((curr->next->start - (curr->end + 1) < 2*PGSIZE)) curr->guardstart = -1;
           else curr->guardstart = curr->end + 1;
-
+          break;
         }
         
       }
@@ -205,7 +206,7 @@ trap(struct trapframe *tf)
       }
       curr = curr->next;
     }
-
+    break;
 
 
   //PAGEBREAK: 13

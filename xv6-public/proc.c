@@ -8,6 +8,8 @@
 #include "spinlock.h"
 #include "mmap.h"
 
+#include "file.h"
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -311,6 +313,15 @@ fork(void)
         kfree(pa);
         np->killed = 1;
       };
+
+      // load file into physical memory
+      if ((curr_vma->flags & MAP_ANON)==0)
+      {
+        struct file *f = curproc->ofile[curr_vma->fd];
+        f->off = 0;
+        // Read the file content into vaddr
+        fileread(f, (char *) curr_vma->start, f->ip->size);
+      }
     }
     curr_vma = curr_vma->next;
   }

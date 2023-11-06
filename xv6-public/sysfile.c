@@ -633,15 +633,9 @@ int sys_mmap(void)
           if ((flags & MAP_ANON)==0)
           {
             struct file *f = p->ofile[fd];
-			f->off = 0;
+			      f->off = 0;
             // Read the file content into vaddr
             fileread(f, (char *) start_addr, f->ip->size);
-
-
-            // // TODO probably some error here I will need to fix
-            // // TODO check error status of this fileread
-            // // fileread(new_vma->f, (void *) start_addr, length);
-            // mmap_read(curr_vma->f, start_addr, offset, PGSIZE);
           }
 
           return start_addr;
@@ -689,10 +683,6 @@ int sys_mmap(void)
 		f->off = 0;
         // Read the file content into vaddr
         fileread(f, (char *) start_addr, f->ip->size);
-        // // TODO probably some error here I will need to fix
-        // // TODO check error status of this fileread
-        // // fileread(new_vma->f, (void *) start_addr, length);
-        // mmap_read(curr_vma->f, start_addr, offset, PGSIZE);
       }
 
       return start_addr;

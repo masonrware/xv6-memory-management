@@ -683,8 +683,10 @@ int sys_mmap(void)
           return start_addr;
         }
       }
+      cprintf("2: %d\n", (prev_vma->flags & MAP_GROWSUP));
       prev_vma = curr_vma;
       curr_vma = curr_vma->next;
+      cprintf("3: %d\n", (prev_vma->flags & MAP_GROWSUP));
     }
 
     // we couldn't find any space, error out
@@ -739,7 +741,7 @@ int sys_mmap(void)
       // if (!first)
       // {
         // previous mapping has a guard page
-        cprintf("2: %d\n", (prev_vma->flags & MAP_GROWSUP));
+        // cprintf("2: %d\n", (prev_vma->flags & MAP_GROWSUP));
         if ((prev_vma->flags & MAP_GROWSUP) != 0)
         {
           cprintf("PREV GUARD PAGE, INVALID\n");

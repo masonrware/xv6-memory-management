@@ -595,7 +595,7 @@ int sys_mmap(void)
     }
 
     struct vm_area *curr_vma = &p->head;
-    struct vm_area *prev_vma = curr_vma;
+    struct vm_area *prev_vma = &p->head;
     // int first = 1;
 
     // iterate over allocated VMAs

@@ -151,7 +151,6 @@ trap(struct trapframe *tf)
     if (fault_addr < MIN_ADDR || fault_addr >= MAX_ADDR)
     {
       // cprintf("access out of bounds: addr space constraints\n");
-      cprintf("**1**\n");
       cprintf("Segmentation Fault\n");
       myproc()->killed = 1;
       break;
@@ -164,7 +163,6 @@ trap(struct trapframe *tf)
       {
         if (fault_addr > curr->end && fault_addr < curr->next->start)
         {
-          cprintf("**2**\n");
           cprintf("Segmentation Fault\n");
           myproc()->killed = 1;
           break;
@@ -200,7 +198,6 @@ trap(struct trapframe *tf)
         }
         else if (fault_addr < curr->next->start)
         {
-          cprintf("**3**\n");
           cprintf("Segmentation Fault\n");
           myproc()->killed = 1;
           break;
@@ -209,7 +206,6 @@ trap(struct trapframe *tf)
       // allocating guard page not possible, no margin left for next guard page
       else
       {
-        cprintf("**4**\n");
         cprintf("Segmentation Fault\n");
         myproc()->killed = 1;
         break;

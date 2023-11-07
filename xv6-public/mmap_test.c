@@ -17,41 +17,48 @@ int main() {
     int len = 4000;
     int extra = 1000;
     int prot = PROT_READ | PROT_WRITE;
-    int flags = MAP_ANON | MAP_SHARED | MAP_GROWSUP;
+    int flags = MAP_ANON | MAP_FIXED | MAP_GROWSUP | MAP_SHARED;
+    void *addr = (void*)0x60000000;
     int fd = -1;
 
-    /* mmap anon memory */
-    void *mem = mmap(0, len, prot, flags, fd, 0);
+    /* Place the first mapping */
+    void *mem = mmap(addr, len, prot, flags, fd, 0);
     if (mem == (void *)-1) {
         printf(1, "mmap FAILED\n");
 	goto failed;
     }
-    printf(1, "outside of mmap\n");
 
-    /* Fill the memory with data */
+    /* Place the second mapping two pages above the first mapping
+     * There's a guard page between these two, but it cannot be 
+     * used for MAP_GROWSUP. Should segfault */
+    addr = (void*)0x60002000;
+    void *mem1 = mmap(addr, len, prot, flags, fd, 0);
+    if (mem1 == (void *)-1) {
+        printf(1, "mmap FAILED\n");
+	goto failed;
+    }
+
+    /* Fill the memory with data - try to extend the first mapping - should fail */
     char *buff = (char *)malloc((len + extra) * sizeof(char));
     char *mem_buff = (char *)mem;
     for (int i = 0; i < (len + extra); i++) {
-        printf(1, "%d\n", mem+i);
         mem_buff[i] = (char)(i % 256);
         buff[i] = mem_buff[i];
     }
 
-    /* See if those values have been actually written */
-    if (my_strcmp(mem_buff, buff, (len + extra)) != 0) {
-        printf(1, "Couldn't read the same data back!\n");
-        printf(1, "Expected: %s\n", buff);
-        printf(1, "Got: %s\n", mem_buff);
-	goto failed;
-    }
+    /* A segmentation fault must happen in the above for loop */
+    printf(1, "Expected SegFault\n");
+    goto failed;
+
 
     /* Clean and return */
-    int ret = munmap(mem, len + extra);
+    int ret = munmap(mem, len);
     if (ret < 0) {
         printf(1, "munmap FAILED\n");
 	goto failed;
     }
     free(buff);
+
 
 
 // success:

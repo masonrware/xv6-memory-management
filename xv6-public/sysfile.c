@@ -651,7 +651,7 @@ int sys_mmap(void)
           // if (!first)
           // {
             // previous mapping has a guard page
-            if (prev_vma->flags & MAP_GROWSUP)
+            if ((prev_vma->flags & MAP_GROWSUP) != 0)
             {
               cprintf("PREV GUARD PAGE, INVALID\n");
               // new vma right after guard page, invalidate prev guard page
@@ -738,7 +738,7 @@ int sys_mmap(void)
       // if (!first)
       // {
         // previous mapping has a guard page
-        if (prev_vma->flags & MAP_GROWSUP)
+        if ((prev_vma->flags & MAP_GROWSUP) != 0)
         {
           cprintf("PREV GUARD PAGE, INVALID\n");
           // new vma right after guard page, invalidate prev guard page

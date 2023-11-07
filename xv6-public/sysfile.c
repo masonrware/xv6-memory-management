@@ -703,10 +703,6 @@ int sys_mmap(void)
       curr_vma->space_after -= length;
       struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
-      //if(new_vma->start == MIN_ADDR) {
-      //  p->head = *new_vma;
-      //}
-
       // *** Ben's edit: allocate physical space, insert into page table ***
       for (int i = start_addr; i < new_vma->end; i += PGSIZE)
       {
@@ -734,21 +730,15 @@ int sys_mmap(void)
         }
       }
 
-      // check if mapping immediately follows a guard page
-      // if (!first)
-      // {
         // previous mapping has a guard page
-        // cprintf("2: %d\n", (prev_vma->flags & MAP_GROWSUP));
         if ((prev_vma->flags & MAP_GROWSUP) != 0)
         {
-          cprintf("PREV GUARD PAGE, INVALID\n");
           // new vma right after guard page, invalidate prev guard page
           if (prev_vma->guardstart + PGSIZE == curr_vma->start)
           {
             prev_vma->guardstart = -1;
           }
         }
-      // }
 
       // account for guard page
       if ((flags & MAP_GROWSUP) != 0)
@@ -763,7 +753,6 @@ int sys_mmap(void)
         {
           cprintf("no room for guard page\n");
           return -1;
-          // new_vma->guardstart = -1;
         }
       }
 

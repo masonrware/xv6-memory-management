@@ -596,12 +596,14 @@ int sys_mmap(void)
 
     struct vm_area *curr_vma = &p->head;
     struct vm_area *prev_vma = curr_vma;
-    int first = 1;
+    // int first = 1;
 
     // iterate over allocated VMAs
     while (curr_vma->start != MAX_ADDR)
     {
-      if (first) first = 0;
+      cprintf("curr: %d\n", curr_vma->start);
+      cprintf("prev: %d\n\n", prev_vma->start);
+      // if (first) first = 0;
       // if provided address falls within the allocated VMA
       if (arg_addr >= curr_vma->start && arg_addr <= curr_vma->end)
       {

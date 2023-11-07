@@ -648,18 +648,19 @@ int sys_mmap(void)
           }
 
           // check if mapping immediately follows a guard page
-          if (!first)
-          {
+          // if (!first)
+          // {
             // previous mapping has a guard page
             if (prev_vma->flags & MAP_GROWSUP)
             {
+              cprintf("PREV GUARD PAGE, INVALID\n");
               // new vma right after guard page, invalidate prev guard page
               if (prev_vma->guardstart + PGSIZE == curr_vma->start)
               {
                 prev_vma->guardstart = -1;
               }
             }
-          }
+          // }
 
           // account for guard page
           if ((flags & MAP_GROWSUP) != 0)
@@ -734,18 +735,19 @@ int sys_mmap(void)
       }
 
       // check if mapping immediately follows a guard page
-      if (!first)
-      {
+      // if (!first)
+      // {
         // previous mapping has a guard page
         if (prev_vma->flags & MAP_GROWSUP)
         {
+          cprintf("PREV GUARD PAGE, INVALID\n");
           // new vma right after guard page, invalidate prev guard page
           if (prev_vma->guardstart + PGSIZE == curr_vma->start)
           {
             prev_vma->guardstart = -1;
           }
         }
-      }
+      // }
 
       // account for guard page
       if ((flags & MAP_GROWSUP) != 0)

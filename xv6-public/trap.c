@@ -151,6 +151,7 @@ trap(struct trapframe *tf)
     if (fault_addr < MIN_ADDR || fault_addr >= MAX_ADDR)
     {
       // cprintf("access out of bounds: addr space constraints\n");
+      cprintf("Segmentation Fault\n");
       myproc()->killed = 1;
       break;
     }
@@ -160,6 +161,7 @@ trap(struct trapframe *tf)
       // vma doesn't have growsup enabled; skip
       if ((curr->flags & MAP_GROWSUP) == 0)
       {
+
         curr = curr->next;
         continue;
       }
@@ -167,14 +169,15 @@ trap(struct trapframe *tf)
       else if (fault_addr < curr->start)
       {
         // cprintf("access out of bounds: addr not in a guard page\n");
+        cprintf("Segmentation Fault\n");
         myproc()->killed = 1;
         break;
       }
       // fault addr within guard page, check if there is space to grow up
-      else if (fault_addr >= curr->guardstart && fault_addr <= curr->end)
+      else if (curr->guardstart > 0)
       {
         // at least a page of margin between guard page and next vma; allocate guard page
-        if ((curr->next->start - (curr->end + 1)) >= PGSIZE)
+        if (fault_addr >= curr->guardstart && fault_addr <= (curr->guardstart + PGSIZE -1))
         {
           char *pa = kalloc();
           if (pa == 0)
@@ -185,22 +188,30 @@ trap(struct trapframe *tf)
           {
             kfree(pa);
             myproc()->killed = 1;
+            break;
           }
 
-          curr->guardstart = curr->end + 1;
+          // cprintf("MAPPED MEMORY\n");
+          curr->len += PGSIZE;
           curr->end += PGSIZE;
-        }
-        // margin is too small; seg fault
-        else
-        {
-          // cprintf("access out of bounds: insufficient margin\n");
-          myproc()->killed = 1;
+
+          // only one page between current vma and next, next access to guard page will be invalid
+          if ((curr->next->start - (curr->end + 1) < 2*PGSIZE)) curr->guardstart = -1;
+          else curr->guardstart = curr->end + 1;
+
           break;
         }
       }
+      // allocating guard page not possible, no margin left for next guard page
+      else
+      {
+        cprintf("Segmentation Fault\n");
+        myproc()->killed = 1;
+        break;
+      }
       curr = curr->next;
     }
-
+    break;
 
 
   //PAGEBREAK: 13

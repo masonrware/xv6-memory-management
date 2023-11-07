@@ -315,8 +315,8 @@ fork(void)
         {
           panic("kalloc");
         }
-        // pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
-        // memmove(pa, (void *) PTE_ADDR(*pteAddr), PGSIZE);
+        pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
+        memmove(pa, (void *) PTE_ADDR(*pteAddr), PGSIZE);
     
         // memmove(pa, (void *) curr_vma->pa+i, PGSIZE);
         if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
@@ -382,6 +382,7 @@ exit(void)
   }
 
   // Release process memory mappings
+  cprintf("FREEVM\n");
   freevm(myproc()->pgdir);
   
   // Jump into the scheduler, never to return.

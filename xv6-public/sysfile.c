@@ -645,12 +645,21 @@ int sys_mmap(void)
           }
 
           // account for guard page
-          if ((flags & MAP_GROWSUP) != 0 && (flags & MAP_ANON) == 0)
+          if ((flags & MAP_GROWSUP) != 0)
           {
-            struct file *f = p->ofile[fd];
-			      f->off = 0;
-            // Read the file content into vaddr
-            fileread(f, (char *) start_addr, f->ip->size);
+            // check margin space, must be at least PGSIZE space for guard page
+            if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
+            {
+              new_vma->guardstart = new_vma->end + 1;     // track start of guard page
+              // new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
+            }
+            // not enough space for guard page
+            else
+            {
+              cprintf("no room for guard page\n");
+              return -1;
+              // new_vma->guardstart = -1;
+            }
           }
 
           return start_addr;
@@ -705,12 +714,21 @@ int sys_mmap(void)
       }
 
       // account for guard page
-      if ((flags & MAP_GROWSUP) != 0 && (flags & MAP_ANON) == 0)
+      if ((flags & MAP_GROWSUP) != 0)
       {
-        struct file *f = p->ofile[fd];
-		    f->off = 0;
-        // Read the file content into vaddr
-        fileread(f, (char *) start_addr, f->ip->size);
+        // check margin space, must be at least PGSIZE space for guard page
+        if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
+        {
+          new_vma->guardstart = new_vma->end + 1;     // track start of guard page
+          // new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
+        }
+        // not enough space for guard page
+        else
+        {
+          cprintf("no room for guard page\n");
+          return -1;
+          // new_vma->guardstart = -1;
+        }
       }
 
       return start_addr;
@@ -767,8 +785,8 @@ int sys_munmap(void)
   if ((vm->flags & MAP_ANON) == 0 && (vm->flags & MAP_PRIVATE) == 0)
   {
     struct file* f = vm->f;                   // file for fbm
-	f->off = 0;
-	filewrite(f, (void*)vm->start, vm->len);
+	  f->off = 0;
+	  filewrite(f, (void*)vm->start, vm->len);
   }
 
   // remove mappings from page table

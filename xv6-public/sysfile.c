@@ -650,7 +650,6 @@ int sys_mmap(void)
           // check if mapping immediately follows a guard page
           // if (!first)
           // {
-            cprintf("1: %d\n", (prev_vma->flags & MAP_GROWSUP));
             // previous mapping has a guard page
             if ((prev_vma->flags & MAP_GROWSUP) != 0)
             {
@@ -666,6 +665,7 @@ int sys_mmap(void)
           // account for guard page
           if ((flags & MAP_GROWSUP) != 0)
           {
+            cprintf("GROWSUP SET\n");
             // check margin space, must be at least PGSIZE space for guard page
             if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
             {
@@ -683,10 +683,8 @@ int sys_mmap(void)
           return start_addr;
         }
       }
-      cprintf("2: %d\n", (prev_vma->flags & MAP_GROWSUP));
       prev_vma = curr_vma;
       curr_vma = curr_vma->next;
-      cprintf("3: %d\n", (prev_vma->flags & MAP_GROWSUP));
     }
 
     // we couldn't find any space, error out

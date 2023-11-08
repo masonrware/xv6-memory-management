@@ -1,0 +1,52 @@
+[1mdiff --git a/xv6-public/mmap_test.c b/xv6-public/mmap_test.c[m
+[1mindex e423cc1..61568fb 100644[m
+[1m--- a/xv6-public/mmap_test.c[m
+[1m+++ b/xv6-public/mmap_test.c[m
+[36m@@ -56,10 +56,9 @@[m [mint main() {[m
+             goto failed;[m
+         }[m
+ [m
+[31m-	/* Child success - exit */[m
+[31m-	exit();[m
+[31m-    printf(1, "done exiting\n");[m
+[31m-[m
+[32m+[m	[32m    /* Child success - exit */[m
+[32m+[m[41m     [m	[32mexit();[m
+[32m+[m[32m        printf(1, "done exiting\n");[m
+     } else {[m
+         wait();[m
+         /* Clean and return */[m
+[1mdiff --git a/xv6-public/proc.c b/xv6-public/proc.c[m
+[1mindex f1e2276..c1ad77d 100644[m
+[1m--- a/xv6-public/proc.c[m
+[1m+++ b/xv6-public/proc.c[m
+[36m@@ -354,7 +354,7 @@[m [mexit(void)[m
+ [m
+   if(curproc == initproc)[m
+     panic("init exiting");[m
+[31m-  [m
+[32m+[m[41m [m
+   // Close all open files.[m
+   for(fd = 0; fd < NOFILE; fd++){[m
+     if(curproc->ofile[fd]){[m
+[36m@@ -369,7 +369,7 @@[m [mexit(void)[m
+   curproc->cwd = 0;[m
+   [m
+   acquire(&ptable.lock);[m
+[31m-[m
+[32m+[m[41m  [m
+   // Parent might be sleeping in wait().[m
+   wakeup1(curproc->parent);[m
+ [m
+[36m@@ -382,9 +382,10 @@[m [mexit(void)[m
+     }[m
+   }[m
+ [m
+[31m-    [m
+[32m+[m[32m  cprintf("trying to free pagetable\n");[m[41m  [m
+   // Release process memory mappings[m
+   freevm(myproc()->pgdir);[m
+[32m+[m[32m  cprintf("freed pagetable\n");[m
+ [m
+   // Jump into the scheduler, never to return.[m
+   curproc->state = ZOMBIE;[m

@@ -291,6 +291,7 @@ freevm(pde_t *pgdir)
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       char * v = P2V(PTE_ADDR(pgdir[i]));
+      // cprintf("free vm: %d\n", (uint) v);
       kfree(v);
     }
   }

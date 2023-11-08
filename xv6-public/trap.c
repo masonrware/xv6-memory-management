@@ -151,7 +151,7 @@ trap(struct trapframe *tf)
     if (fault_addr < MIN_ADDR || fault_addr >= MAX_ADDR)
     {
       // cprintf("access out of bounds: addr space constraints\n");
-      cprintf("Segmentation Fault\n");
+      // cprintf("Segmentation Fault\n");
       myproc()->killed = 1;
       break;
     }

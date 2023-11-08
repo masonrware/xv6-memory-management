@@ -296,19 +296,18 @@ fork(void)
   struct vm_area *curr_vma = &curproc->head;
   while(curr_vma->start != MAX_ADDR) {
     // if it is MAP_SHARED, copy down the mapping
-    uint offset = 0;
     if(curr_vma->flags & MAP_SHARED) {
       for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
        if(mappages(np->pgdir, (void *) i, PGSIZE, curr_vma->pa, curr_vma->prot | PTE_U)!=0){
           kfree((char *) curr_vma->pa);
           np->killed = 1;
         };
-        offset+=PGSIZE;
       }
     } 
     // if it is MAP_PRIVATE, reallocate the mappings
     else if (curr_vma->flags & MAP_PRIVATE) {
       for (int i = curr_vma->start; i < curr_vma->end; i+=PGSIZE) {
+        cprintf("iter\n");
         // reallocate
         char *pa = kalloc();
         if (pa == 0)
@@ -316,15 +315,13 @@ fork(void)
           panic("kalloc");
         }
         pte_t *pteAddr = walkpgdir(curproc->pgdir, (void *) i, 0);
-        memmove(pa, (void *) PTE_ADDR(*pteAddr), PGSIZE);
-    
+        memmove(pa, P2V(PTE_ADDR(*pteAddr)), PGSIZE);
+
         // memmove(pa, (void *) curr_vma->pa+i, PGSIZE);
         if(mappages(np->pgdir, (void *) i, PGSIZE, (uint) pa, curr_vma->prot | PTE_U)!=0){
           kfree(pa);
           np->killed = 1;
         };
-
-        offset+=PGSIZE;
       }
     }
     curr_vma = curr_vma->next;
@@ -382,8 +379,7 @@ exit(void)
   }
 
   // Release process memory mappings
-  cprintf("FREEVM\n");
-  freevm(myproc()->pgdir);
+  deallocuvm(myproc()->pgdir, myproc()->sz, 0);
   
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;

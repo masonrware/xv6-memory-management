@@ -595,6 +595,8 @@ int sys_mmap(void)
     }
 
     struct vm_area *curr_vma = &p->head;
+    struct vm_area *prev_vma = &p->head;
+    // int first = 1;
 
     // iterate over allocated VMAs
     while (curr_vma->start != MAX_ADDR)
@@ -605,7 +607,6 @@ int sys_mmap(void)
         cprintf("Address has already been mapped.\n");
         return -1;
       }
-
       // if the requested mapping is before the next VMA
       if (arg_addr < curr_vma->next->start)
       {
@@ -616,8 +617,11 @@ int sys_mmap(void)
           start_addr = arg_addr;
           curr_vma->space_after -= length;
           struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
+          
+          if(new_vma->start == MIN_ADDR) {
+            p->head = *new_vma;
+          }
 
-          // *** Ben's edit: allocate physical space, insert into page table ***
           for (int i = start_addr; i < new_vma->end; i += PGSIZE)
           {
             char *pa = kalloc();
@@ -644,6 +648,16 @@ int sys_mmap(void)
             }
           }
 
+          // previous mapping has a guard page
+          if ((prev_vma->flags & MAP_GROWSUP) != 0)
+          {
+            // new vma right after guard page, invalidate prev guard page
+            if (prev_vma->guardstart + PGSIZE == curr_vma->start)
+            {
+              prev_vma->guardstart = -1;
+            }
+          }
+
           // account for guard page
           if ((flags & MAP_GROWSUP) != 0)
           {
@@ -651,32 +665,35 @@ int sys_mmap(void)
             if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
             {
               new_vma->guardstart = new_vma->end + 1;     // track start of guard page
-              // new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
             }
             // not enough space for guard page
             else
             {
               cprintf("no room for guard page\n");
               return -1;
-              // new_vma->guardstart = -1;
             }
           }
 
           return start_addr;
         }
       }
+      prev_vma = curr_vma;
       curr_vma = curr_vma->next;
     }
 
     // we couldn't find any space, error out
     return -1;
   }
+
   // MAP_FIXED not set, we have to find an address
   struct vm_area *curr_vma = &p->head;
+  struct vm_area *prev_vma = curr_vma;
+  int first = 1;
 
   // iterate over allocated VMAs
   while (curr_vma->start != MAX_ADDR)
   {
+    if (first) first = 0;
     // check the space after it - request encroaching on next VMA is covered because the
     // starting address is not arbitrary
     if (curr_vma->space_after > length)
@@ -686,7 +703,6 @@ int sys_mmap(void)
       curr_vma->space_after -= length;
       struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
-      // *** Ben's edit: allocate physical space, insert into page table ***
       for (int i = start_addr; i < new_vma->end; i += PGSIZE)
       {
         char *pa = kalloc();
@@ -713,6 +729,16 @@ int sys_mmap(void)
         }
       }
 
+        // previous mapping has a guard page
+        if ((prev_vma->flags & MAP_GROWSUP) != 0)
+        {
+          // new vma right after guard page, invalidate prev guard page
+          if (prev_vma->guardstart + PGSIZE == curr_vma->start)
+          {
+            prev_vma->guardstart = -1;
+          }
+        }
+
       // account for guard page
       if ((flags & MAP_GROWSUP) != 0)
       {
@@ -720,19 +746,18 @@ int sys_mmap(void)
         if ((new_vma->next->start - (new_vma->end + 1)) >= PGSIZE)
         {
           new_vma->guardstart = new_vma->end + 1;     // track start of guard page
-          // new_vma->end += PGSIZE;                     // increase end of mapping to include guard page
         }
         // not enough space for guard page
         else
         {
           cprintf("no room for guard page\n");
           return -1;
-          // new_vma->guardstart = -1;
         }
       }
 
       return start_addr;
     }
+    prev_vma = curr_vma;
     curr_vma = curr_vma->next;
   }
 
@@ -801,6 +826,9 @@ int sys_munmap(void)
       *pte = 0;                                           // remove PTE
     }
   }
+
+  // if prev vma has invalid guard page, validate it
+  if (prev->guardstart == -1) prev->guardstart = prev->end + 1;
 
   // mark end of freed memory at the next highest page
   end_addr = PGROUNDUP(end_addr) - 1;

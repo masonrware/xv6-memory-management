@@ -150,7 +150,6 @@ trap(struct trapframe *tf)
 
     if (fault_addr < MIN_ADDR || fault_addr >= MAX_ADDR)
     {
-      // cprintf("access out of bounds: addr space constraints\n");
       cprintf("Segmentation Fault\n");
       myproc()->killed = 1;
       break;
@@ -161,17 +160,12 @@ trap(struct trapframe *tf)
       // vma doesn't have growsup enabled; skip
       if ((curr->flags & MAP_GROWSUP) == 0)
       {
-
-        curr = curr->next;
-        continue;
-      }
-      // passed fault addr w/ no valid guard page; seg fault
-      else if (fault_addr < curr->start)
-      {
-        // cprintf("access out of bounds: addr not in a guard page\n");
-        cprintf("Segmentation Fault\n");
-        myproc()->killed = 1;
-        break;
+        if (fault_addr > curr->end && fault_addr < curr->next->start)
+        {
+          cprintf("Segmentation Fault\n");
+          myproc()->killed = 1;
+          break;
+        }
       }
       // fault addr within guard page, check if there is space to grow up
       else if (curr->guardstart > 0)
@@ -191,7 +185,6 @@ trap(struct trapframe *tf)
             break;
           }
 
-          // cprintf("MAPPED MEMORY\n");
           curr->len += PGSIZE;
           curr->end += PGSIZE;
 
@@ -199,6 +192,12 @@ trap(struct trapframe *tf)
           if ((curr->next->start - (curr->end + 1) < 2*PGSIZE)) curr->guardstart = -1;
           else curr->guardstart = curr->end + 1;
 
+          break;
+        }
+        else if (fault_addr < curr->next->start)
+        {
+          cprintf("Segmentation Fault\n");
+          myproc()->killed = 1;
           break;
         }
       }
@@ -209,6 +208,7 @@ trap(struct trapframe *tf)
         myproc()->killed = 1;
         break;
       }
+      
       curr = curr->next;
     }
     break;

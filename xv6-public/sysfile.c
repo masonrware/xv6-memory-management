@@ -622,7 +622,6 @@ int sys_mmap(void)
             p->head = *new_vma;
           }
 
-          // *** Ben's edit: allocate physical space, insert into page table ***
           for (int i = start_addr; i < new_vma->end; i += PGSIZE)
           {
             char *pa = kalloc();
@@ -685,6 +684,7 @@ int sys_mmap(void)
     // we couldn't find any space, error out
     return -1;
   }
+
   // MAP_FIXED not set, we have to find an address
   struct vm_area *curr_vma = &p->head;
   struct vm_area *prev_vma = curr_vma;
@@ -703,7 +703,6 @@ int sys_mmap(void)
       curr_vma->space_after -= length;
       struct vm_area *new_vma = create_vma(curr_vma, curr_vma->next, start_addr, length, prot, flags, fd);
 
-      // *** Ben's edit: allocate physical space, insert into page table ***
       for (int i = start_addr; i < new_vma->end; i += PGSIZE)
       {
         char *pa = kalloc();

@@ -14,22 +14,26 @@ Codebase for Project 5 - XV6 memory management for CS 537 @ UW Madison.
 
 ***
 
-> Git commands for Ben:
->
-> To clone the repo: `git clone <github url>`
-> To create a branch: `git checkout -b <branch name>` OR `git branch <branch name>; git checkout <branch name>`
->
-> To add, commit and push your changes:
-> To see what has changed: `git status`
-> To stage your changes for commit: `git add <file/directories>` (typically `git add .`)
-> To commit your changes: `git commit -m "<message>"`
-> To push your changes: `git push` (NOTE: on your first push, you will also need to publish the branch to remote. For this, use: `git push --set-upstream origin <branch name>`)
->
-> To merge any changes made to master into your branch or merge your changes into master:
-> First, get to master (you need to commit or stash any of the changes on your branch before moving): `git checkout master`
-> Next, make sure it is up to date: `git pull`
-> Lastly, go back to your branch: `git checkout <branch name>` and merge IN master: `git merge master`
->
-> To merge your branch into master, do the same thing: `git checkout master; git pull; git merge <your branch>`
-
 # Overview
+
+Files we touched:
+
+Aside form syscall files (`usys.S, user.h, etc...`), we modified the following files in our implementation
+1. `sysfile.c`
+2. `proc.c`
+3. `proc.h`
+4. `trap.c`
+
+Moreover, we copied code from vm.c and pasted it raw into both `sysfile.c` and `proc.c`. Specifically, we copied the functions `mappages()` and `walkpgdir()`.
+
+`mmap()` and `munmap()` are defined in `sysfile.c` (at the very bottom of the file). 
+
+**WE DID NOT IMPLEMENT LAZY ALLOCATION**
+
+## General Pipeline
+
+When a user calls mmap, because we are not using lazy allocation, the memory allocation happens immediately. There are two main cases that mmap executed: one for MAP_FIXED and another otherwise. Both seek to identify a valid starting address and use that to map page chunks of the users requested memory. Moreover, both cases provide file-backed mapping, making use of the functions `fileread()` in `mmap()` and the corresponding `filewrite()` in `munmap()` to do the file-write-back execution.
+
+We maintain a linkedlist of virtual memory areas (recordings of calls to mmap) for each process. These VMAs hold information (copies of the arguments passed to mmap) as well as the generated start and ending virtual addresses of the requests. 
+
+Everything else that is performed is standard per the spec of this project. This implementation passes all tests and works as expected.
